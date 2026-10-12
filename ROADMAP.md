@@ -8,7 +8,7 @@
 
 | # | 功能 | 状态 | 验收标准 | 备注 |
 |---|------|------|----------|------|
-| 1 | 门户静态页 + 独立 `uhttpd` 实例 | done | 设备上 `ubus call luci.portal status` 返回 `listening: true`，且 `curl http://127.0.0.1:<port>/` 返回门户 HTML | v2.0.0。**注：`subroute` 分支上不再成立** —— 该分支去掉独立实例，改由主 uhttpd 的子路径提供，见 #18 |
+| 1 | 门户静态页 + 独立 `uhttpd` 实例 | done | 设备上 `ubus call luci.portal status` 返回 `listening: true`，且 `curl http://127.0.0.1:<port>/` 返回门户 HTML | v2.0.0。**注：`feature/subroute` 分支上不再成立** —— 该分支去掉独立实例，改由主 uhttpd 的子路径提供，见 #18 |
 | 2 | LuCI 三视图（常规 / 书签 / 素材库） | done | 三个视图均可打开且无 JS 报错；改动 ubus 方法后 `sh scripts/check.sh` 的 ubus↔ACL 项通过 | v2.0.0 |
 | 3 | 端口扫描（`/proc/net/tcp[6]`） | done | `ubus call luci.portal scan` 返回 `lan_ip` 与 `ports`；只监听 `127.0.0.1` 的服务不出现在结果里 | v2.0.0 |
 | 4 | 素材库上传 / 重命名 / 删除 / 设为背景 | done | 设备上上传 / 重命名 / 删除后文件确实变动，且**失败时必须弹错误提示**；「设为背景」按 B 方案保持暂存语义（须再点「保存并应用」） | r18 修 ubus 参数策略、r19 修调用风格、r20 修跨设备 rename；2026-10-06 设备验证 上传/预览/改名 通过（删除未单独复测） |
