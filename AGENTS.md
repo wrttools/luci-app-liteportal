@@ -139,7 +139,7 @@ luci-app-portal — 给 OpenWrt / ImmortalWrt 用的静态 HTML 导航页：跑�
 | 红线 / DoD | `docs/definition-of-done.md` 同步（不得放宽） |
 | 章节标题 | 全仓扫一遍按「§N」引用本文件的地方 |
 | 决策理由变更 | 新增一条 ADR，`docs/adr/` 旧记录原样保留 |
-| 发版（打 tag / 建 Release） | tag 用 `v2.0.0-rN`；release title 与 tag 一致；`CHANGELOG.md` 的 `[Unreleased]` 改名 `[2.0.0-rN] - 日期`（不带 v），顶部补空的 `[Unreleased]` |
+| 发版（打 tag / 建 Release） | tag 用 `v<PKG_VERSION>-r<PKG_RELEASE>`（两个值取自 `Makefile`，见 §8）；release title 与 tag 一致；`CHANGELOG.md` 的 `[Unreleased]` 改名 `<PKG_VERSION>-r<PKG_RELEASE> - 日期`（不带 v），顶部补空的 `[Unreleased]` |
 
 其中「`portal.uc` 方法表」与「用户可见字符串」两行漏掉时 `scripts/check.sh` 会抓到；
 其余几行不会 —— 靠这张表和 review。
