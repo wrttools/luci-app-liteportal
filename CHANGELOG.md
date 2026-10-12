@@ -5,9 +5,13 @@
 
 ## [Unreleased]
 
+## [3.0.0-r1] - 2026-10-12
+
 ### Added
 
 - 新增 `.github/pull_request_template.md`；`AGENTS.md` 增补 §8 单一事实源坐标、§9 同改矩阵，红线分为阻断级 / 提醒级。
+- **主版本升到 3.0.0**：部署模型由「门户跑自己的 uhttpd 实例」改为「复用主 uhttpd 的子路径」，
+  uci 与 `luci.portal status` 契约随之破坏性变更，故按语义化版本升主版本。
 
 ### Changed
 
