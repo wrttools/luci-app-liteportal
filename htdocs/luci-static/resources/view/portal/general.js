@@ -129,10 +129,7 @@ function confirm_unknown(result) {
 
 return view.extend({
 	load: function() {
-		return Promise.all([
-			uci.load('portal'),
-			uci.load('uhttpd')
-		]);
+		return uci.load('portal');
 	},
 
 	render: function() {
@@ -142,8 +139,9 @@ return view.extend({
 			const status = common.status_panel();
 
 			m = new form.Map('portal', _('Portal'),
-				_('A static HTML portal served by its own uhttpd instance on a dedicated ' +
-				  'port. Settings are persisted in uci and baked into links.json on apply.'));
+				_('A static HTML portal served by the web server the router already runs, ' +
+				  'under the /portal/ sub-path. Settings are persisted in uci and baked ' +
+				  'into links.json on apply.'));
 
 			/* --------------------------------------------------------- General -- */
 
@@ -153,30 +151,15 @@ return view.extend({
 
 			/*
 			 * The master switch. Absent or '1' means on; only an explicit '0'
-			 * stops the daemon, which /etc/init.d/portal enforces when the
-			 * configuration change triggers a reload.
+			 * takes the page off the web server. There is no daemon of our own
+			 * to stop, so the initial script withdraws the files instead - the
+			 * uploaded assets stay, and switching back on republishes them.
 			 */
 			o = s.option(form.Flag, 'enabled', _('Enable portal'),
-				_('Turn the portal service on or off. When off, the uhttpd instance is ' +
-				  'stopped and the port is closed.'));
+				_('Publish the portal page, or take it off the web server. When off, ' +
+				  '/portal/ stops resolving; the uploaded icons and backgrounds are kept.'));
 			o.default = '1';
 			o.rmempty = false;
-
-			o = s.option(form.Value, 'port', _('Listen port'));
-			o.datatype = 'port';
-			o.default = '8180';
-			o.rmempty = false;
-			o.validate = function(section_id, value) {
-				const port = +value;
-
-				if (port === 80 || port === 8080)
-					return _('Ports 80 and 8080 are reserved by the main web server.');
-
-				if (common.port_in_use(port))
-					return _('This port is already used by the main uhttpd instance.');
-
-				return true;
-			};
 
 			o = s.option(form.Value, 'title', _('Page title'));
 			o.placeholder = 'My Portal';

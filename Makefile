@@ -19,10 +19,10 @@ PKG_MAINTAINER:=cocolight
 PKG_LICENSE:=GPL-2.0-only
 PKG_LICENSE_FILES:=LICENSE
 
-LUCI_TITLE:=Portal - static HTML dashboard on a dedicated port
-LUCI_DESCRIPTION:=Serves a static HTML navigation portal on a configurable \
-	port using its own uhttpd instance. Bookmarks, icons and the background \
-	are managed through LuCI and persisted in uci.
+LUCI_TITLE:=Portal - static HTML dashboard
+LUCI_DESCRIPTION:=Publishes a static HTML navigation portal as a sub-path of \
+	the router's existing uhttpd. Bookmarks, icons and the background are \
+	managed through LuCI and persisted in uci.
 LUCI_DEPENDS:=+luci-base +uhttpd +ucode +ucode-mod-fs +ucode-mod-uci +rpcd-mod-ucode
 LUCI_PKGARCH:=all
 LUCI_URL:=https://github.com/wrttools/luci-app-portal
@@ -49,8 +49,24 @@ define Package/luci-app-portal/postinst
 # $${IPKG_INSTROOT} is set by opkg, $${PKG_INSTROOT} by apk-tools.
 [ -z "$${IPKG_INSTROOT}$${PKG_INSTROOT}" ] || exit 0
 
-mkdir -p /etc/portal/www/icons /etc/portal/www/bg
-[ -f /etc/portal/www/index.html ] || cp -r /usr/share/portal/www/. /etc/portal/www/ 2>/dev/null
+# The page is handed out by the main uhttpd out of its own document root, so
+# that is where it has to live.
+mkdir -p /www/portal
+
+# Adopt an installation made by 2.0.0-r23 or earlier, which kept its runtime
+# tree under /etc/portal/www. The uploaded assets are user data: move a
+# directory over only while the new location is still empty, and never merge
+# into one that is already in use.
+for sub in icons bg; do
+	if [ -d "/etc/portal/www/$$sub" ] && [ ! -d "/www/portal/$$sub" ]; then
+		mv "/etc/portal/www/$$sub" "/www/portal/$$sub" 2>/dev/null
+	fi
+done
+rm -rf /etc/portal
+
+# The template files are installed by /etc/init.d/portal start below, which also
+# bakes the first links.json - so the list of files to publish lives in exactly
+# one place.
 
 # Let rpcd pick up the new ucode plugin, then bake the initial links.json.
 # If the reload did not rescan the plugin directory the ubus object stays
@@ -93,10 +109,9 @@ define Package/luci-app-portal/prerm
 [ -z "$${IPKG_INSTROOT}$${PKG_INSTROOT}" ] || exit 0
 
 # Same guard as in postinst: a package built before the mode was fixed ships a
-# 0644 init script. Here the consequence is worse than at install time - the
-# procd instance is declared with `respawn`, so a stop that never runs leaves
-# uhttpd holding the port and restarting into a /etc/portal that the line below
-# is about to delete.
+# 0644 init script. Here the consequence is that the service would stay enabled
+# after the page it publishes is gone, so the mode is forced before the calls
+# below rather than after them.
 chmod 0755 /etc/init.d/portal 2>/dev/null
 
 if ! /etc/init.d/portal stop; then \
@@ -108,7 +123,9 @@ if ! /etc/init.d/portal disable; then \
 	logger -t portal "failed to disable the portal service"; \
 fi
 
-rm -rf /etc/portal
+# Only the portal's own sub-directory: /www is shared with LuCI and the rest of
+# the web server, and /www/portal holds the files the user uploaded into it.
+rm -rf /www/portal
 
 # /etc/config/portal is a conffile and its removal is left to the package
 # manager, so that a modified configuration survives a reinstall.

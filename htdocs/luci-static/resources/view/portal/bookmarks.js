@@ -7,7 +7,7 @@
 'require ui';
 'require portal.common as common';
 
-const ICON_DIR = '/etc/portal/www/icons';
+const ICON_DIR = '/www/portal/icons';
 
 const MIME = {
 	png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',

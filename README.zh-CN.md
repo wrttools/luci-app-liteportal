@@ -7,34 +7,40 @@
 
 ## 它做什么
 
-路由器照常在原端口提供 LuCI。本应用额外加一个刻意保持极简的页面 —— 一个指向路由器
-（或任意位置）上各服务的书签网格，端口由你指定。书签、图标与背景都存放在 `uci` 中，
-并烘焙成静态的 `links.json`，因此门户页面本身不需要任何后端。
+路由器照常在原端口提供 LuCI。本应用在**同一个** Web 服务器上额外挂一个刻意保持极简
+的页面 —— 一个指向路由器（或任意位置）上各服务的书签网格，路径固定为 `/portal/`，
+因此不需要第二个守护进程，也不需要额外开一个防火墙端口。书签、图标与背景都存放在
+`uci` 中，并烘焙成静态的 `links.json`，因此门户页面本身不需要任何后端。
 
 ```
-                    ┌──────────────────────────────┐
-   :80 / :443  ────►│  uhttpd  (主 LuCI 栈)        │
-                    └──────────────────────────────┘
-   :8180       ────►┌──────────────────────────────┐      ┌────────────────────┐
-   （可配置）        │  uhttpd  (独立实例)│◄─────│ /etc/portal/www/   │
-                    │  procd: /etc/init.d/portal   │      │  index.html        │
-                    └──────────────────────────────┘      │  portal.js/.css│
-                │  links.json  ◄── uci
-   LuCI  ─── /admin/services/portal ──────────────────►   │  bg/  icons/       │
-                                                          └────────────────────┘
+                    ┌──────────────────────────────────────┐
+   :80 / :443  ────►│  uhttpd  （路由器自带的 Web 服务）    │
+                    │    /         → LuCI                  │
+                    │    /portal/  → 门户页面              │
+                    └──────────────────┬───────────────────┘
+                                       │ 直接从磁盘读取
+                                       ▼
+                    ┌──────────────────────────────────────┐
+                    │  /www/portal/                        │
+                    │    index.html  portal.js  portal.css │
+                    │    links.json   ◄── 由 uci 烘焙      │
+                    │    bg/  icons/  ◄── 上传落在这里     │
+                    └──────────────────────────────────────┘
+                                       ▲
+   LuCI  ── /admin/services/portal ────┘   发布 / 撤下页面
 ```
 
 ## 功能
 
 | | |
 |---|---|
-| 启用开关 | 一键开关整个门户服务；关闭后守护进程停止、端口关闭，无需重启设备 |
-| 独立端口 | 再起一个 `uhttpd` 实例，端口自选，并校验是否与主 LuCI 冲突 |
+| 启用开关 | 发布或撤下门户页面；上传的图标与背景图在两种状态下都保留 |
+| 不额外起进程 | 由路由器已在运行的 `uhttpd` 在 `/portal/` 下提供，无需启动、守护或额外放行端口 |
 | 书签 | 增删与启用/禁用；图标支持 emoji、远程 URL 或素材库里的图片 |
 | 素材库 | 上传（单个 ≤ 2 MiB）、预览、重命名、列出与删除图标/背景图，并可直接设为页面背景 |
 | 外观 | 页面标题、CSS 背景色或背景图，另有背景压暗、磨砂模糊、书签卡片透明度三个 0–100 滑块 |
 | Discovery | 读取 `/proc/net/tcp[6]`，把已知的 Web 服务加成**禁用**书签，其余端口交给你决定 |
-| 运行状态 | 分别显示进程是否存活、端口是否真的被监听、访问地址与已生成的书签数 |
+| 运行状态 | 报告页面是否**可访问**；不可访问时指出是「未发布」还是「服务器未监听」，并给出访问地址与已生成的书签数 |
 | 纯静态 | 配置存 `uci`，生成 `links.json` 供前端读取，页面本身不需要后端 |
 | 不依赖 `luci-compat` | 现代 LuCI（JavaScript 视图 + ucode 后端），无需 Lua 运行时 |
 
@@ -55,21 +61,21 @@ apk add --allow-untrusted ./luci-app-portal-2.0.0-r23.apk
 opkg install ./luci-app-portal_2.0.0-r23_all.ipk
 ```
 
-然后进 LuCI 的**服务 → Portal**，或直接访问 `http://<路由器>:8180/`。
+然后进 LuCI 的**服务 → Portal**，或直接访问 `http://<路由器>/portal/`。
 
 ## 目录结构
 
 | 路径 | 用途 |
 |---|---|
 | `htdocs/luci-static/resources/portal/common.js` | 共享工具：RPC 封装、状态面板、错误上报 |
-| `htdocs/luci-static/resources/view/portal/general.js` | LuCI 视图 —— 开关、端口、标题、背景、维护 |
+| `htdocs/luci-static/resources/view/portal/general.js` | LuCI 视图 —— 开关、标题、背景、外观、维护 |
 | `htdocs/luci-static/resources/view/portal/bookmarks.js` | LuCI 视图 —— 书签表格 |
 | `htdocs/luci-static/resources/view/portal/assets.js` | LuCI 视图 —— 图标与背景素材库 |
 | `root/usr/share/luci/menu.d/luci-app-portal.json` | 菜单注册 |
 | `root/usr/share/rpcd/acl.d/luci-app-portal.json` | 各视图的 ubus / uci / 文件权限 |
 | `root/usr/share/rpcd/ucode/portal.uc` | 后端：`luci.portal` ubus 对象（仅插件，无 CLI 模式） |
-| `root/etc/init.d/portal` | procd 服务：生成 `links.json` + 独立 `uhttpd` |
-| `root/usr/share/portal/www/` | 门户前端模板（`index.html`、`portal.js`、`portal.css`） |
+| `root/etc/init.d/portal` | 服务脚本：发布 / 撤下页面并生成 `links.json`，本身不起任何进程 |
+| `root/usr/share/portal/www/` | 门户前端模板（`index.html`、`portal.js`、`portal.css`），会被拷进 `/www/portal/` |
 | `root/etc/config/portal` | 默认 `uci` 配置 |
 | `scripts/check.sh` | 本地与 CI 的全部检查门禁 |
 | `docs/` | 架构、完成定义、配置说明与 ADR |
@@ -90,8 +96,8 @@ ubus call luci.portal scan
 #              { "port": 7890, "svc": "", "web": "unknown" } ] }
 
 ubus call luci.portal status
-# { "ok": true, "enabled": true, "running": true, "pid": 1234, "port": 8180,
-#   "listening": true, "url": "http://192.168.1.1:8180/", "links": 2,
+# { "ok": true, "enabled": true, "path": "/portal/", "published": true,
+#   "server_listening": true, "reachable": true, "links": 2,
 #   "generated": true, "generated_at": 1791124783 }
 
 # 素材管理 —— 浏览器只能写 /tmp/portal_upload.tmp，由后端搬到最终文件名
@@ -117,18 +123,19 @@ mDNS。与其双向猜测，不如把未识别的端口列出来让你一次性�
 该脚本**仅作插件** —— rpcd 加载时不会定义 `ARGV`，因此它无法兼作命令行工具。
 按上例通过 ubus 调用即可。
 
-`status` 刻意把「进程存活」与「端口已监听」分开判定：procd 会不断重启一个启动即退出的
-守护进程，只看 PID 会掩盖一个根本不应答的门户。
+`status` 只回答一个问题 —— 页面能不能打开 —— 并把背后的两个条件分开报告，因为两者
+的修法不同：`published`（入口文件与 `links.json` 是否就位）与 `server_listening`
+（主 uhttpd 是否占着它被配置的某个端口）。`reachable` 是这两者的交集。结果里不再有
+`url`：地址由浏览器用自身 origin 加 `path` 拼出 —— 那才是**正在**提供页面的地址。
 
 ## uci 配置参考
 
 ```
 config portal
-	option enabled           '1'         # 总开关；'0' 停止门户
-	option port              '8180'      # 门户监听端口
+	option enabled           '1'         # 总开关；'0' 把页面从 Web 服务器上撤下
 	option title             'My Portal' # 页面标题与 <title>
 	option background        '#0e1116'   # CSS 颜色
-	option background_file   ''          # /etc/portal/www 下的绝对路径
+	option background_file   ''          # /www/portal 下的绝对路径
 	option bg_veil           '78'        # 0-100：背景图被压暗的程度
 	option bg_blur           '0'         # 0-100：磨砂模糊，100 等于最大值 20 px
 	option card_transparency '45'        # 0-100：100 表示卡片完全透出背景
@@ -136,9 +143,16 @@ config portal
 config link
 	option name     'AdGuard Home'
 	option url      'http://192.168.1.1:3000'
-	option icon_url '🛡️'              # 或：option icon '/etc/portal/www/icons/x.png'
+	option icon_url '🛡️'              # 或：option icon '/www/portal/icons/x.png'
 	option enabled  '1'
 ```
+
+旧版本写在这里的 `port` 选项已随独立实例一并移除：页面在**主 uhttpd 监听的端口**上
+访问，配置里残留的 `port` 会被直接忽略。
+
+`enabled` 不再是「启停一个守护进程」，而是「发布或撤下页面」。关闭它会从
+`/www/portal/` 移除入口文件与 `links.json`，使 `/portal/` 不再解析；上传的图标与
+背景图原封不动，重新打开即恢复。
 
 `links.json` 原样带上标题、背景与三个外观百分比；`portal.js` 把百分比转成
 `portal.css` 消费的 CSS 自定义属性，所以门户页自己不必读 uci。删掉其中任何一项都会
@@ -159,14 +173,15 @@ ubus call luci.portal status
 | 现象 | 原因 |
 |---|---|
 | `enabled: false` | 「常规」页的开关被关掉了，勾上并点「保存并应用」 |
-| `running: true` 但 `listening: false` | 进程活着但绑不上端口，通常已被其他服务占用 |
-| `running: false` | 从未启动：`/etc/init.d/portal enable && /etc/init.d/portal start` |
+| `published: false` | 页面不在磁盘上：服务还没跑过，或开关是关的。`sh /etc/init.d/portal start` 会发布它 |
+| `server_listening: false` | 主 uhttpd 没有在它被配置的任何一个端口上监听 —— 检查 `/etc/config/uhttpd` |
+| 面板说「可访问」但 `/portal/` 返回 404 | 主实例的 `option home` 不是 `/www`，它在提供另一棵树 |
 | 页面能开但没有书签 | `links.json` 缺失或为空，点「立即重新生成 links.json」 |
-| 路由器上 `curl http://127.0.0.1:端口/` 通、客户端不通 | 防火墙/区域规则拦了该端口 |
 | 浏览器控制台报 *Access denied* | 有 ubus 方法没写进 ACL —— 跑一下 `sh scripts/check.sh` |
 
-实例绑定 `0.0.0.0:<端口>`（所有网卡，IPv4）；要只绑某个地址需自行改
-`/etc/init.d/portal`。
+页面由主 uhttpd 提供，因此继承该实例的监听地址与防火墙规则 —— 没有单独的端口需要
+放行。反过来也要知道：**LuCI 能访问到的地方，`/portal/` 就能访问到**，包括把管理界面
+暴露在 WAN 上的情形。
 
 ## 已知限制
 
@@ -174,7 +189,8 @@ ubus call luci.portal status
 |---|---|
 | 上传单个文件 ≤ 2 MiB | 前端与后端都做校验，手工构造的请求也绕不过去。多兆的背景图**显示**没问题，限的只是上传 |
 | 文件名仅限 ASCII 字母数字与 `.` `-` `_` | 文件名会变成设备路径；直接拒绝比悄悄改写用户输入更安全，也能从根上杜绝路径穿越。中文名与空格会被拒绝 |
-| 缩略图依赖门户自身的 HTTP 端口 | 缩略图改为 `http://<路由器>:<端口>/…` 直接取，因此解除了 256 KiB 内联上限。但 LuCI 走 **HTTPS** 时浏览器会按混合内容拦截，此时缩略图降级为文字链接 |
+| 页面在 LuCI 可达处皆可达 | 它与 LuCI 由同一个 uhttpd 提供，因而继承管理界面的暴露范围 —— 没有一个单独留着的端口可供收紧。要让它不可达，等于让 LuCI 不可达 |
+| 位置固定在 `/portal/` | 页面必须落在主实例的 `option home`（默认 `/www`）之内，而 LuCI 侧的文件 ACL 是静态清单 —— `home` 被改过就需要人工调整本包 |
 | 不会主动探测未识别端口 | 判定端口是否说 HTTP 需要在同步 ubus 方法里做带超时的 `GET /`，会阻塞整个 rpcd（连带所有 LuCI 页面）。因此改为列出来由你决定 |
 | 设为背景只暂存 | 与其他设置一致，需点「保存并应用」才生效 —— `generate()` 跑在后端进程里，用的是它自己的 `uci` cursor，否则会烘出旧值 |
 
