@@ -9,10 +9,14 @@
 //
 //     luci.portal scan      -> { "lan_ip": "192.168.1.1", "ports": [ { "port": 80, "svc": "http", "web": true } ] }
 //     luci.portal generate  -> { "ok": true, "title": "My Portal", "links": 2 }
-//     luci.portal status    -> { "ok": true, "running": true, "pid": 1234, "port": 8180, ... }
+//     luci.portal status    -> { "ok": true, "enabled": true, "reachable": true, "path": "/portal/", ... }
 //     luci.portal upload    -> { "ok": true, "name": "bg.jpg" }
 //     luci.portal rename    -> { "ok": true, "name": "new.jpg" }
 //     luci.portal remove    -> { "ok": true, "name": "old.jpg", "references": 2 }
+//
+// The portal is NOT a service of its own: the page lives in the document root
+// of the router's existing uhttpd, under a fixed sub-path, so there is no
+// second daemon to start, supervise or ask for a port.
 //
 // Call it over ubus, from /etc/init.d/portal, the package post-install script or
 // a shell:
@@ -29,12 +33,34 @@
 'use strict';
 
 import { cursor } from 'uci';
-import { chmod, error, glob, mkdir, open, readfile, rename, stat, unlink, writefile } from 'fs';
+import { chmod, error, mkdir, open, readfile, rename, stat, unlink, writefile } from 'fs';
 
 const CONFIG = 'portal';
-const WWW = '/etc/portal/www';
+
+/*
+ * The document root of the main uhttpd instance, with the portal in a
+ * subdirectory of it. Serving the page from the server that is already running
+ * is the whole point: a second uhttpd would be a second process for the same
+ * handful of static files, and it needs a port of its own plus a firewall rule
+ * to go with it. The cost is that the location is fixed - it has to sit inside
+ * whatever `option home` the main instance was configured with, and the package
+ * has no way to place it anywhere else.
+ */
+const WWW = '/www/portal';
+
+/* The URL the page is reachable at, relative to the server root. Every asset
+ * path handed to the browser is prefixed with it - without the prefix a
+ * document-root relative "/bg/x.jpg" would resolve against the main root and
+ * 404, because the portal is not served from the root. */
+const URL_BASE = '/portal';
+
 const ICON_DIR = WWW + '/icons';
 const BG_DIR = WWW + '/bg';
+
+/* The configuration of the server that serves the portal. It is read here, in
+ * the backend, because that is where the uci cursor is unrestricted: the LuCI
+ * views deliberately have no access to it. */
+const UHTTPD = 'uhttpd';
 
 /*
  * Where the browser drops a cgi-upload before the backend moves it into place.
@@ -138,25 +164,25 @@ function ensure_dir(path) {
 }
 
 /*
- * Map a stored asset option onto a document-root relative URL.
+ * Map a stored asset option onto the URL the browser has to request.
  *
- * The result always starts with a slash: the page is served from the root of
- * its own uhttpd instance, so a bare "bg/x.jpg" would be resolved against the
- * page's own path and 404. Values arrive in three shapes - a bare name as
+ * The result is an absolute path below URL_BASE, not below the server root: the
+ * portal is served from /portal/, so "/bg/x.jpg" would be looked for in the
+ * main document root and 404. Values arrive in three shapes - a bare name as
  * written by the previous Lua release, an absolute path as written by the
- * Assets page, and a leading-slash path if a hand edited config used one.
+ * Assets page, and a server-root relative path from a hand edited config.
  */
 function asset_path(value, subdir) {
 	if (value == null || value == '')
 		return '';
 
 	if (index(value, WWW + '/') == 0)
-		return '/' + substr(value, length(WWW) + 1);
+		return URL_BASE + '/' + substr(value, length(WWW) + 1);
 
 	if (index(value, '/') != 0)
-		return '/' + subdir + '/' + value;
+		return URL_BASE + '/' + subdir + '/' + value;
 
-	return value;
+	return URL_BASE + value;
 }
 
 /*
@@ -337,81 +363,110 @@ function collect_links(uci) {
 	return links;
 }
 
-/* The configured listen port, with the same fallback the init script uses. */
-function configured_port(uci) {
-	const general = first_section(uci, 'portal');
-	const port = int(general.port ?? 0);
+/*
+ * Every port the main uhttpd instance was told to listen on. There may be more
+ * than one section and more than one `list` entry per section, and either
+ * family may be absent, so this collects what is actually configured instead of
+ * assuming the default 80/443 pair.
+ */
+function server_ports(uci) {
+	const ports = {};
 
-	return (port > 0 && port < 65536) ? port : 8180;
+	uci.foreach(UHTTPD, 'uhttpd', (section) => {
+		for (let key in [ 'listen_http', 'listen_https' ]) {
+			let value = section[key];
+
+			if (value == null)
+				continue;
+
+			if (type(value) != 'array')
+				value = [ value ];
+
+			for (let item in value) {
+				/*
+				 * Entries are written "addr:port", but a bare port means
+				 * every address, so the colon is optional here.
+				 */
+				const port = match(item, /:?(\d+)$/);
+
+				if (port != null)
+					ports[int(port[1])] = true;
+			}
+		}
+	});
+
+	return ports;
 }
 
 /*
- * Find the uhttpd process we started. procd writes no pid file for us, so the
- * instance is identified by the document root passed to -h.
+ * Whether the server that is supposed to serve the portal is actually up.
+ *
+ * This replaces the old pid hunt. With the page living in the main instance's
+ * document root there is no portal process of our own to look for, and a pid
+ * would not answer the question that matters anyway - whether the page can be
+ * fetched. A listener on a configured port is the honest, passive stand-in: it
+ * is what the socket table says, without reaching out over the loopback from
+ * inside a synchronous ubus method, which would block every other LuCI page for
+ * the length of the timeout.
  */
-function service_pid() {
-	for (let file in glob('/proc/[0-9]*/cmdline')) {
-		let raw;
+function server_is_listening(uci) {
+	const wanted = server_ports(uci);
 
-		try {
-			raw = readfile(file);
-		}
-		catch (e) {
-			continue; /* process vanished, or not ours to read */
-		}
-
-		if (type(raw) != 'string' || raw == '')
-			continue;
-
-		for (let arg in split(raw, '\0'))
-			if (arg == WWW)
-				return int(match(file, /^\/proc\/(\d+)\/cmdline$/)?.[1]);
-
-	}
-
-	return null;
-}
-
-function port_is_listening(port) {
-	for (let item in listening_ports(null))
-		if (int(item) == port)
+	for (let port in listening_ports(null))
+		if (wanted[int(port)] == true)
 			return true;
 
 	return false;
 }
 
 /*
- * Runtime state of the portal service, as shown on the settings page.
+ * The two files that make the sub-path resolve: the entry point the browser
+ * loads and the data it then fetches. Either one missing means /portal/ is not
+ * serving a portal, whatever the configuration says.
+ */
+function is_published() {
+	return (stat(WWW + '/index.html') != null) && (stat(WWW + '/links.json') != null);
+}
+
+/*
+ * Runtime state of the portal, as shown on the settings page.
  *
- * `running` says the daemon is alive, `listening` says it actually owns the
- * socket - the two can differ, for example when uhttpd was started with an
- * address it could not resolve, in which case it exits immediately while procd
- * keeps respawning it.
+ * The question the panel has to answer is "can it be reached", and with the page
+ * served by somebody else's server that is not the same as "is our switch on".
+ * Two conditions go into it - the files are in place (`published`) and the
+ * server is listening on one of its ports (`server_listening`) - and
+ * `reachable` is the pair of them. They are reported separately because each
+ * failure has a different fix; telling those apart is what the running/pid pair
+ * this replaces could never do.
  *
- * `enabled` is the configuration switch, which is a different question from
- * whether the daemon happens to be alive: a portal the user turned off is not a
- * fault, and the UI must be able to tell the two apart. Absent means enabled,
- * so configurations written before the switch existed keep working.
+ * `enabled` stays the configuration switch, and stays a different question: a
+ * portal the user deliberately switched off is not a fault, so the UI must not
+ * paint it red. Absent means enabled, so configurations written before the
+ * switch existed keep working.
+ *
+ * There is no `url` in the result any more. The browser composes the address
+ * from its own origin plus `path`, and that origin is by construction the server
+ * that is serving the page - a URL guessed from the LAN address and a port
+ * number would be wrong behind a reverse proxy or on a non-standard port.
  */
 function status() {
 	const uci = cursor();
 
 	uci.load(CONFIG);
+	uci.load(UHTTPD);
 
 	const general = first_section(uci, 'portal');
-	const port = configured_port(uci);
-	const pid = service_pid();
-	const ip = lan_ip();
+	const published = is_published();
+	const server = server_is_listening(uci);
 	const stamp = stat(WWW + '/links.json');
 
 	return {
 		ok: true,
 		enabled: (general.enabled ?? '1') != '0',
-		running: pid != null,
-		pid: pid,
-		port: port,
-		listening: port_is_listening(port),
-		url: ip ? sprintf('http://%s:%d/', ip, port) : null,
+		path: URL_BASE + '/',
+		published: published,
+		server_listening: server,
+		reachable: published && server,
 		links: length(collect_links(uci)),
 		generated: stamp != null,
 		generated_at: stamp?.mtime ?? null
@@ -440,9 +495,9 @@ function percent(value, fallback) {
 }
 
 /*
- * Bake /etc/portal/www/links.json from the uci configuration. The served page
- * is static, so the bookmarks are turned into a plain JSON document that the
- * frontend fetches.
+ * Bake WWW/links.json from the uci configuration. The served page is static, so
+ * the bookmarks are turned into a plain JSON document that the frontend fetches
+ * from the same sub-path it was served from.
  */
 function generate() {
 	const uci = cursor();

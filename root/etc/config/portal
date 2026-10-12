@@ -1,11 +1,13 @@
-# Portal: switch, port, title, background and appearance of the dashboard served
-# by /etc/init.d/portal. Set enabled to '0' to stop the portal daemon.
+# Portal: switch, title, background and appearance of the dashboard published by
+# /etc/init.d/portal. Set enabled to '0' to take the page off the web server.
+#
+# The page is served by the main uhttpd instance under /portal/, so it has no
+# port of its own to configure.
 #
 # The three appearance percentages are what the LuCI sliders write. Deleting one
 # falls back to the same value in the backend, so the page keeps its look.
 config portal
 	option enabled '1'
-	option port '8180'
 	option title 'My Portal'
 	option background '#0e1116'
 	option bg_veil '78'

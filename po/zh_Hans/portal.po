@@ -51,13 +51,14 @@ msgstr "添加为禁用书签"
 msgid "Portal"
 msgstr "门户"
 
-#: htdocs/luci-static/resources/view/portal/general.js:144
+#: htdocs/luci-static/resources/view/portal/general.js:141
 msgid ""
-"A static HTML portal served by its own uhttpd instance on a dedicated port. "
-"Settings are persisted in uci and baked into links.json on apply."
+"A static HTML portal served by the web server the router already runs, under "
+"the /portal/ sub-path. Settings are persisted in uci and baked into "
+"links.json on apply."
 msgstr ""
-"由独立 uhttpd 实例在指定端口上提供服务的静态 HTML 门户。设置保存在 uci 中，应"
-"用时烘焙进 links.json。"
+"由路由器已在运行的 Web 服务器在 /portal/ 子路径下提供的静态 HTML 门户。设置保存在"
+"uci 中，应用时烘焙进 links.json。"
 
 #: htdocs/luci-static/resources/view/portal/general.js:149
 msgid "General"
@@ -69,21 +70,11 @@ msgstr "启用门户"
 
 #: htdocs/luci-static/resources/view/portal/general.js:159
 msgid ""
-"Turn the portal service on or off. When off, the uhttpd instance is stopped "
-"and the port is closed."
-msgstr "开启或关闭门户服务。关闭后 uhttpd 实例会停止，端口不再监听。"
-
-#: htdocs/luci-static/resources/view/portal/general.js:164
-msgid "Listen port"
-msgstr "监听端口"
-
-#: htdocs/luci-static/resources/view/portal/general.js:172
-msgid "Ports 80 and 8080 are reserved by the main web server."
-msgstr "80 与 8080 端口已被主 Web 服务器占用。"
-
-#: htdocs/luci-static/resources/view/portal/general.js:175
-msgid "This port is already used by the main uhttpd instance."
-msgstr "该端口已被主 uhttpd 实例占用。"
+"Publish the portal page, or take it off the web server. When off, /portal/ "
+"stops resolving; the uploaded icons and backgrounds are kept."
+msgstr ""
+"发布门户页面，或把它从 Web 服务器上撤下。关闭后 /portal/ 不再解析；已上传的图标"
+"与背景图会保留。"
 
 #: htdocs/luci-static/resources/view/portal/general.js:180
 msgid "Page title"
@@ -284,10 +275,6 @@ msgstr "将从配置中删除全部 %d 个书签，此操作不可撤销。"
 msgid "Deleted %d bookmark(s)."
 msgstr "已删除 %d 个书签。"
 
-#: htdocs/luci-static/resources/view/portal/assets.js:116
-msgid "preview unavailable"
-msgstr "预览不可用"
-
 #: htdocs/luci-static/resources/view/portal/assets.js:122
 msgid "open"
 msgstr "打开"
@@ -392,14 +379,14 @@ msgstr "暂无文件。"
 msgid "Assets"
 msgstr "素材库"
 
-#: htdocs/luci-static/resources/view/portal/assets.js:400
+#: htdocs/luci-static/resources/view/portal/assets.js:494
 msgid ""
 "Icons and background images offered to the portal. Files are served from the "
-"portal document root, picked for a bookmark on the Bookmarks page, or set as "
-"the page background here."
+"portal page directory by the main web server, picked for a bookmark on the "
+"Bookmarks page, or set as the page background here."
 msgstr ""
-"提供给门户使用的图标与背景图。文件由门户的文档根目录提供，可在「书签」页选作"
-"图标，或在此设为页面背景。"
+"提供给门户使用的图标与背景图。文件由主 Web 服务器从门户页面目录提供，可在「书签」"
+"页选作图标，或在此设为页面背景。"
 
 #: htdocs/luci-static/resources/view/portal/assets.js:403
 msgid "Icons"
@@ -418,105 +405,82 @@ msgstr "错误"
 msgid "Operation failed: %s"
 msgstr "操作失败：%s"
 
-#: htdocs/luci-static/resources/portal/common.js:135
+#: htdocs/luci-static/resources/portal/common.js:226
 msgid "Service state unknown."
 msgstr "服务状态未知。"
 
-#: htdocs/luci-static/resources/portal/common.js:141
-msgid "Service"
-msgstr "服务"
+#: htdocs/luci-static/resources/portal/common.js:240
+msgid "Reachable"
+msgstr "可访问"
 
-#: htdocs/luci-static/resources/portal/common.js:143
-msgid "Running"
-msgstr "运行中"
-
-#: htdocs/luci-static/resources/portal/common.js:143
-msgid "Stopped"
-msgstr "未运行"
-
-#: htdocs/luci-static/resources/portal/common.js:144
-#, javascript-format
-msgid "PID %d"
-msgstr "PID %d"
-
-#: htdocs/luci-static/resources/portal/common.js:146
+#: htdocs/luci-static/resources/portal/common.js:245
 msgid "Disabled"
 msgstr "已停用"
 
-#: htdocs/luci-static/resources/portal/common.js:147
-msgid "Listening"
-msgstr "监听"
-
-#: htdocs/luci-static/resources/portal/common.js:148
+#: htdocs/luci-static/resources/portal/common.js:240
 msgid "Yes"
 msgstr "是"
 
-#: htdocs/luci-static/resources/portal/common.js:148
+#: htdocs/luci-static/resources/portal/common.js:240
 msgid "No"
 msgstr "否"
 
-#: htdocs/luci-static/resources/portal/common.js:149
-#, javascript-format
-msgid "nothing is bound to port %d"
-msgstr "端口 %d 未绑定"
-
-#: htdocs/luci-static/resources/portal/common.js:151
-msgid "Port"
-msgstr "端口"
-
-#: htdocs/luci-static/resources/portal/common.js:152
+#: htdocs/luci-static/resources/portal/common.js:246
 msgid "Address"
 msgstr "访问地址"
 
-#: htdocs/luci-static/resources/portal/common.js:154
-msgid "unknown"
-msgstr "未知"
+#: htdocs/luci-static/resources/portal/common.js:207
+msgid ""
+"The page files are not in place. Press \"Save & Apply\" to publish it."
+msgstr "页面文件尚未就位。点「保存并应用」发布它。"
 
-#: htdocs/luci-static/resources/portal/common.js:156
+#: htdocs/luci-static/resources/portal/common.js:210
+msgid ""
+"The main web server (uhttpd) is not listening on any of its ports, so "
+"nothing can serve the page."
+msgstr ""
+"主 Web 服务器（uhttpd）没有在它的任何端口上监听，因此没有服务能提供这个页面。"
+
+#: htdocs/luci-static/resources/portal/common.js:212
+msgid "The page cannot be reached."
+msgstr "页面无法访问。"
+
+#: htdocs/luci-static/resources/portal/common.js:251
 #, javascript-format
 msgid "%d baked into links.json"
 msgstr "已生成 %d 个书签到 links.json"
 
-#: htdocs/luci-static/resources/portal/common.js:157
+#: htdocs/luci-static/resources/portal/common.js:252
 msgid "links.json has not been generated yet"
 msgstr "links.json 尚未生成"
 
-#: htdocs/luci-static/resources/portal/common.js:163
+#: htdocs/luci-static/resources/portal/common.js:256
 msgid ""
 "The portal is switched off. Turn on \"Enable portal\" above, then press "
-"\"Save & Apply\" to start it."
-msgstr "门户已关闭。请打开上方的「启用门户」，再点「保存并应用」启动它。"
+"\"Save & Apply\" to publish it."
+msgstr "门户已关闭。请打开上方的「启用门户」，再点「保存并应用」发布它。"
 
-#: htdocs/luci-static/resources/portal/common.js:168
-msgid ""
-"The portal is not serving requests. Change a setting and use \"Save & "
-"Apply\" to restart it; if the port stays unbound, another service may "
-"already be using it."
-msgstr ""
-"门户当前没有在提供服务。修改任一设置后点「保存并应用」重启服务；若端口仍未绑"
-"定，可能有其他服务已占用该端口。"
-
-#: htdocs/luci-static/resources/portal/common.js:176
-#: htdocs/luci-static/resources/portal/common.js:183
+#: htdocs/luci-static/resources/portal/common.js:270
+#: htdocs/luci-static/resources/portal/common.js:277
 msgid "Querying…"
 msgstr "查询中…"
 
-#: htdocs/luci-static/resources/portal/common.js:189
+#: htdocs/luci-static/resources/portal/common.js:283
 #, javascript-format
 msgid "Status query failed: %s"
 msgstr "状态查询失败：%s"
 
-#: htdocs/luci-static/resources/portal/common.js:194
+#: htdocs/luci-static/resources/portal/common.js:288
 msgid "Service status"
 msgstr "运行状态"
 
-#: htdocs/luci-static/resources/portal/common.js:203
+#: htdocs/luci-static/resources/portal/common.js:297
 msgid "Refresh"
 msgstr "刷新"
 
-#: htdocs/luci-static/resources/portal/common.js:206
-msgid "Re-reads the running instance, it does not change the configuration."
-msgstr "仅重新读取运行中的实例状态，不会修改配置。"
+#: htdocs/luci-static/resources/portal/common.js:300
+msgid "Re-reads the published state, it does not change the configuration."
+msgstr "仅重新读取发布状态，不会修改配置。"
 
 #~ msgid "too large to preview"
 #~ msgstr "文件过大，无法预览"

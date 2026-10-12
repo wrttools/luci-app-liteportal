@@ -56,10 +56,11 @@ msgstr ""
 msgid "Portal"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/portal/general.js:145
+#: htdocs/luci-static/resources/view/portal/general.js:141
 msgid ""
-"A static HTML portal served by its own uhttpd instance on a dedicated port. "
-"Settings are persisted in uci and baked into links.json on apply."
+"A static HTML portal served by the web server the router already runs, under "
+"the /portal/ sub-path. Settings are persisted in uci and baked into "
+"links.json on apply."
 msgstr ""
 
 #: htdocs/luci-static/resources/view/portal/general.js:150
@@ -70,22 +71,10 @@ msgstr ""
 msgid "Enable portal"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/portal/general.js:160
+#: htdocs/luci-static/resources/view/portal/general.js:159
 msgid ""
-"Turn the portal service on or off. When off, the uhttpd instance is stopped "
-"and the port is closed."
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/general.js:165
-msgid "Listen port"
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/general.js:173
-msgid "Ports 80 and 8080 are reserved by the main web server."
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/general.js:176
-msgid "This port is already used by the main uhttpd instance."
+"Publish the portal page, or take it off the web server. When off, /portal/ "
+"stops resolving; the uploaded icons and backgrounds are kept."
 msgstr ""
 
 #: htdocs/luci-static/resources/view/portal/general.js:181
@@ -306,58 +295,43 @@ msgstr ""
 msgid "Operation failed: %s"
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:230
+#: htdocs/luci-static/resources/portal/common.js:226
 msgid "Service state unknown."
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:236
-msgid "Service"
+#: htdocs/luci-static/resources/portal/common.js:240
+msgid "Reachable"
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:238
-msgid "Running"
-msgstr ""
-
-#: htdocs/luci-static/resources/portal/common.js:238
-msgid "Stopped"
-msgstr ""
-
-#: htdocs/luci-static/resources/portal/common.js:239
-#, javascript-format
-msgid "PID %d"
-msgstr ""
-
-#: htdocs/luci-static/resources/portal/common.js:241
+#: htdocs/luci-static/resources/portal/common.js:245
 msgid "Disabled"
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:242
-msgid "Listening"
-msgstr ""
-
-#: htdocs/luci-static/resources/portal/common.js:243
+#: htdocs/luci-static/resources/portal/common.js:240
 msgid "Yes"
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:243
+#: htdocs/luci-static/resources/portal/common.js:240
 msgid "No"
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:244
-#, javascript-format
-msgid "nothing is bound to port %d"
-msgstr ""
-
 #: htdocs/luci-static/resources/portal/common.js:246
-msgid "Port"
-msgstr ""
-
-#: htdocs/luci-static/resources/portal/common.js:247
 msgid "Address"
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:249
-msgid "unknown"
+#: htdocs/luci-static/resources/portal/common.js:207
+msgid ""
+"The page files are not in place. Press \"Save & Apply\" to publish it."
+msgstr ""
+
+#: htdocs/luci-static/resources/portal/common.js:210
+msgid ""
+"The main web server (uhttpd) is not listening on any of its ports, so "
+"nothing can serve the page."
+msgstr ""
+
+#: htdocs/luci-static/resources/portal/common.js:212
+msgid "The page cannot be reached."
 msgstr ""
 
 #: htdocs/luci-static/resources/portal/common.js:251
@@ -369,43 +343,32 @@ msgstr ""
 msgid "links.json has not been generated yet"
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:258
+#: htdocs/luci-static/resources/portal/common.js:256
 msgid ""
 "The portal is switched off. Turn on \"Enable portal\" above, then press "
-"\"Save & Apply\" to start it."
+"\"Save & Apply\" to publish it."
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:263
-msgid ""
-"The portal is not serving requests. Change a setting and use \"Save & "
-"Apply\" to restart it; if the port stays unbound, another service may "
-"already be using it."
-msgstr ""
-
-#: htdocs/luci-static/resources/portal/common.js:271
-#: htdocs/luci-static/resources/portal/common.js:278
+#: htdocs/luci-static/resources/portal/common.js:270
+#: htdocs/luci-static/resources/portal/common.js:277
 msgid "Querying…"
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:284
+#: htdocs/luci-static/resources/portal/common.js:283
 #, javascript-format
 msgid "Status query failed: %s"
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:289
+#: htdocs/luci-static/resources/portal/common.js:288
 msgid "Service status"
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:298
+#: htdocs/luci-static/resources/portal/common.js:297
 msgid "Refresh"
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:301
-msgid "Re-reads the running instance, it does not change the configuration."
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/assets.js:137
-msgid "preview unavailable"
+#: htdocs/luci-static/resources/portal/common.js:300
+msgid "Re-reads the published state, it does not change the configuration."
 msgstr ""
 
 #: htdocs/luci-static/resources/view/portal/assets.js:143
@@ -512,9 +475,9 @@ msgstr ""
 msgid "Assets"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/portal/assets.js:490
+#: htdocs/luci-static/resources/view/portal/assets.js:494
 msgid ""
 "Icons and background images offered to the portal. Files are served from the "
-"portal document root, picked for a bookmark on the Bookmarks page, or set as "
-"the page background here."
+"portal page directory by the main web server, picked for a bookmark on the "
+"Bookmarks page, or set as the page background here."
 msgstr ""

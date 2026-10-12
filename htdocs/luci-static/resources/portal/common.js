@@ -1,6 +1,5 @@
 'use strict';
 'require rpc';
-'require uci';
 'require ui';
 'require baseclass';
 
@@ -61,30 +60,6 @@ function render_error_block(err) {
 }
 
 return baseclass.extend(/** @lends LuCI.portal.common.prototype */ {
-
-	/*
-	 * Refuse ports that the main uhttpd instance already listens on. The uhttpd
-	 * configuration is read client side, so it is also listed in the read ACL.
-	 */
-	port_in_use(port) {
-		let in_use = false;
-
-		try {
-			uci.sections('uhttpd', 'uhttpd').forEach(function(instance) {
-				[ instance.listen_http, instance.listen_https ].forEach(function(listen) {
-					const match = /:([0-9]+)$/.exec(listen || '');
-
-					if (match && +match[1] === port)
-						in_use = true;
-				});
-			});
-		}
-		catch (e) {
-			/* uhttpd configuration unavailable - nothing to clash with */
-		}
-
-		return in_use;
-	},
 
 	/*
 	 * Show a notification, replacing the previous one this app put up.
@@ -218,12 +193,33 @@ return baseclass.extend(/** @lends LuCI.portal.common.prototype */ {
 	},
 
 	/*
-	 * A missing listener is the interesting case: procd keeps restarting a daemon
-	 * that dies immediately, so "running" alone would be misleading.
+	 * Why the portal cannot be reached, in the words of whatever is actually
+	 * wrong.
 	 *
-	 * `enabled` is a separate axis again: when it is false the daemon is supposed to
-	 * be absent, which is why the failure hint below is replaced by a hint pointing
-	 * at the switch.
+	 * The page is served by the main uhttpd, so "the portal is down" is never a
+	 * single fact: either the files are not in place, or the server that should
+	 * hand them out is not listening. Those have two different fixes, which is
+	 * exactly why the backend reports them separately instead of folding them
+	 * into one boolean.
+	 */
+	unreachable_reason(st) {
+		if (!st.published)
+			return _('The page files are not in place. Press "Save & Apply" to publish it.');
+
+		if (!st.server_listening)
+			return _('The main web server (uhttpd) is not listening on any of its ports, so nothing can serve the page.');
+
+		return _('The page cannot be reached.');
+	},
+
+	/*
+	 * The status panel. It answers one question - can the portal be reached -
+	 * and reports the two conditions behind it rather than a process id: there
+	 * is no portal daemon any more, the page is handed out by the main uhttpd.
+	 *
+	 * `enabled` stays a separate axis: when it is false the page is supposed to
+	 * be absent, which is why the failure hint is replaced by one pointing at
+	 * the switch - a portal the user switched off is not a fault.
 	 */
 	status_view(st) {
 		if (!st)
@@ -231,22 +227,24 @@ return baseclass.extend(/** @lends LuCI.portal.common.prototype */ {
 
 		const on = (st.enabled !== false);
 
+		/*
+		 * Composed from the origin this page was loaded from, not from a stored
+		 * address: LuCI and the portal are served by the same uhttpd, so the
+		 * origin is by construction the one that reaches it - whichever host,
+		 * port or scheme the admin browsed in on.
+		 */
+		const url = window.location.origin + (st.path || '/portal/');
+
 		const nodes = [
 			E('table', { class: 'table' }, [
-				this.status_row(_('Service'), on
+				this.status_row(_('Reachable'), on
 					? [
-						this.badge(st.running ? _('Running') : _('Stopped'), st.running),
-						st.running && st.pid ? ' ' + _('PID %d').format(st.pid) : ''
+						this.badge(st.reachable ? _('Yes') : _('No'), st.reachable),
+						st.reachable ? '' : ' ' + this.unreachable_reason(st)
 					]
 					: [ this.muted_badge(_('Disabled')) ]),
-				this.status_row(_('Listening'), [
-					this.badge(st.listening ? _('Yes') : _('No'), st.listening),
-					st.listening ? '' : ' ' + _('nothing is bound to port %d').format(st.port)
-				]),
-				this.status_row(_('Port'), String(st.port)),
-				this.status_row(_('Address'), st.url
-					? E('a', { href: st.url, target: '_blank', rel: 'noopener' }, st.url)
-					: E('em', {}, _('unknown'))),
+				this.status_row(_('Address'),
+					E('a', { href: url, target: '_blank', rel: 'noopener' }, url)),
 				this.status_row(_('Bookmarks'), st.generated
 					? _('%d baked into links.json').format(st.links)
 					: E('em', {}, _('links.json has not been generated yet')))
@@ -255,12 +253,12 @@ return baseclass.extend(/** @lends LuCI.portal.common.prototype */ {
 
 		if (!on) {
 			nodes.push(E('p', { class: 'alert-message' }, [
-				_('The portal is switched off. Turn on "Enable portal" above, then press "Save & Apply" to start it.')
+				_('The portal is switched off. Turn on "Enable portal" above, then press "Save & Apply" to publish it.')
 			]));
 		}
-		else if (!st.running || !st.listening) {
+		else if (!st.reachable) {
 			nodes.push(E('p', { class: 'alert-message warning' }, [
-				_('The portal is not serving requests. Change a setting and use "Save & Apply" to restart it; if the port stays unbound, another service may already be using it.')
+				this.unreachable_reason(st)
 			]));
 		}
 
@@ -298,7 +296,7 @@ return baseclass.extend(/** @lends LuCI.portal.common.prototype */ {
 				}, _('Refresh')),
 				' ',
 				E('span', { class: 'cbi-value-description' },
-					_('Re-reads the running instance, it does not change the configuration.'))
+					_('Re-reads the published state, it does not change the configuration.'))
 			])
 		]);
 
