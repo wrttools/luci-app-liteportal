@@ -3,12 +3,12 @@
 		"description": "Grant access to the Portal configuration",
 		"read": {
 			"file": {
-				"/etc/portal/www": [ "list" ],
-				"/etc/portal/www/*": [ "list" ],
-				"/etc/portal/www/bg": [ "list" ],
-				"/etc/portal/www/bg/*": [ "list" ],
-				"/etc/portal/www/icons": [ "list" ],
-				"/etc/portal/www/icons/*": [ "list" ]
+				"/www/portal": [ "list" ],
+				"/www/portal/*": [ "list" ],
+				"/www/portal/bg": [ "list" ],
+				"/www/portal/bg/*": [ "list" ],
+				"/www/portal/icons": [ "list" ],
+				"/www/portal/icons/*": [ "list" ]
 			},
 			"ubus": {
 				"file": [ "list" ],

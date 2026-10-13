@@ -15,14 +15,17 @@
 | `root/usr/share/rpcd/ucode/portal.uc` | 原样 | 后端，`luci.portal` ubus 对象 |
 | `root/usr/share/rpcd/acl.d/luci-app-portal.json` | 原样 | 上述方法的权限白名单 |
 | `root/usr/share/luci/menu.d/luci-app-portal.json` | 原样 | 菜单注册 |
-| `root/usr/share/portal/www/` | `/usr/share/portal/www/` | 门户前端模板；postinst 拷进 `/etc/portal/www/` |
-| `root/etc/init.d/portal` | `/etc/init.d/portal` | procd 服务：生成 `links.json` + 起独立 `uhttpd` |
+| `root/usr/share/portal/www/` | `/usr/share/portal/www/` | 门户前端模板；服务脚本拷进 `/www/portal/` |
+| `root/etc/init.d/portal` | `/etc/init.d/portal` | 服务脚本：发布 / 撤下页面并生成 `links.json`（本身不起进程） |
 | `root/etc/config/portal` | `/etc/config/portal` | 默认 uci 配置（conffile） |
 | `scripts/check.sh` | **不安装** | 本地与 CI 的全部门禁 |
 | `docs/` | **不安装** | 文档与 ADR |
 
-`/etc/portal/www/` 是运行时目录：postinst 从 `/usr/share/portal/www/` 拷一份，
-用户的图标、背景与 `links.json` 都落在那里。卸载时整个 `/etc/portal` 被删除。
+`/www/portal/` 是运行时目录：由 `/etc/init.d/portal` 从 `/usr/share/portal/www/`
+拷入模板，用户的图标、背景与 `links.json` 都落在那里。它在主 uhttpd 实例的文档根
+（`option home`，默认 `/www`）之内 —— 这正是该子路径能被服务出来的原因。卸载时整个
+`/www/portal` 被删除。改动的来龙去脉见
+[adr/0004](adr/0004-serve-portal-from-main-uhttpd.md)。
 
 ## 2. 分层与依赖方向
 
@@ -35,7 +38,7 @@ LuCI 视图 (view/portal/*.js)
    ubus / luci.portal  ──►  portal.uc  ──►  uci / fs
         │
         ▼
-procd init.d/portal  ──►  uhttpd  ──►  /etc/portal/www/（静态文件）
+init.d/portal（发布 / 撤下）──►  /www/portal/（静态文件）◄──  主 uhttpd
 ```
 
 - **视图不得包含系统逻辑。** 浏览器读不到 `/proc/net/tcp[6]`，也拿不到 `uci` 以外的系统
@@ -52,7 +55,7 @@ procd init.d/portal  ──►  uhttpd  ──►  /etc/portal/www/（静态文�
 | 方法 | 用途 | 副作用 |
 |------|------|--------|
 | `generate` | 从 uci 重新烘焙 `links.json` | 写文件 |
-| `status` | 进程/端口/书签数状态 | 无 |
+| `status` | 发布状态与可访问性（`published` / `server_listening` / `reachable`） | 无 |
 | `scan` | 扫 `/proc/net/tcp[6]` | 无 |
 | `upload` | 把 `/tmp/portal_upload.tmp` 搬到素材目录 | 写文件 |
 | `rename` | 素材改名 | 写文件 |
@@ -72,9 +75,10 @@ ubus↔ACL 项就是为此存在。
 
 - **后端不抛异常，用 `{ ok: false, error: '…' }` 返回。** rpcd 会把异常吞成
   `ubus call` 的非零退出，浏览器侧拿不到原因。
-- **前端必须显式检查 `ok`。** 这是当前的已知缺陷：`common.js:94` 的 `run_rpc()` 只判
-  `res != null`，于是 resolved 的 `{ ok: false }` 被当成成功（见
-  [ROADMAP.md](../ROADMAP.md) 根因 1）。新增调用点时不要复制这个模式。
+- **前端必须显式检查 `ok`。** `run_rpc()` 会把 resolved 的 `{ ok: false, error }`
+  当成失败抛出（`v2.0.0-r17` 起如此，见 [ROADMAP.md](../ROADMAP.md) 根因 1），本 App
+  全部 `rpc.declare` 也都声明了 `reject: true`。新增调用点时走 `run_rpc()`，
+  不要自己只判 `res != null`。
 - 错误信息要带足定位上下文（哪个文件、哪个目录），但不得含绝对路径以外的用户数据。
 
 ## 5. 安全边界
@@ -83,8 +87,10 @@ ubus↔ACL 项就是为此存在。
 - **上传有两道闸**：文件名白名单（ASCII 字母数字与 `.` `-` `_`）与 2 MiB 上限在
   **前端和后端各做一次**。不得因为「前端已经拦了」就删后端那一份。
 - 文件名直接成为设备路径，因此**拒绝**而非静默改写；这也顺带杜绝了路径穿越。
-- 浏览器只被允许写 `/tmp/portal_upload.tmp`，由后端 `rename(2)` 搬到最终位置 ——
-  二进制载荷因此不会经过 ubus 消息。
+- 浏览器只被允许写 `/tmp/portal_upload.tmp`，由后端搬进 `/www/portal/{icons,bg}` ——
+  二进制载荷因此不会经过 ubus 消息。搬运走 `readfile` + `writefile` 而不是
+  `rename(2)`：`/tmp` 是独立的 tmpfs，跨设备的 rename 会以 `EXDEV` 失败
+  （`v2.0.0-r20`）。
 
 ## 6. 日志
 
@@ -99,6 +105,7 @@ ubus↔ACL 项就是为此存在。
 | ubus 方法名 | `snake_case`，进 ACL 的是**方法名**而非函数名 | `upload` → `upload_asset()` |
 | LuCI 视图 | 目录 `view/portal/`，文件名小写单词 | `bookmarks.js` |
 | uci 字段 | `snake_case` | `background_file`、`icon_url` |
+| 门户子路径 | 前后端各持一份常量，必须同时改 | ucode 的 `URL_BASE`、`assets.js` 的 `PORTAL_PATH` |
 | JS | ES6+，`const`/`let`，不用 `var`；缩进 **tab** | |
 
 **为什么 `upload` 方法映射到 `upload_asset()` 函数**：`fs` 里已 `import` 了 `rename`，

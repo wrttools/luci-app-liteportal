@@ -117,6 +117,7 @@ luci-app-portal — 给 OpenWrt / ImmortalWrt 用的静态 HTML 导航页：跑�
 | uci 配置项与默认值 | `root/etc/config/portal`（默认值）+ LuCI 表单 `htdocs/luci-static/resources/view/portal/*.js` |
 | ubus 方法契约 | `root/usr/share/rpcd/ucode/portal.uc` 的 `const methods = {…}` 表（每行一条）；ACL 白名单在 `root/usr/share/rpcd/acl.d/luci-app-portal.json` |
 | `links.json` 结构 | 生产者 `portal.uc` 的 `generate()`；消费者 `root/usr/share/portal/www/portal.js` |
+| 门户静态文件的落点与 URL 前缀 | `portal.uc` 的 `WWW` / `URL_BASE`、`root/etc/init.d/portal` 的 `PORTAL_WWW`、`acl.d` 的文件白名单、`assets.js` 的 `ICON_DIR`/`BG_DIR`/`PORTAL_PATH` —— 同一套值，改一处就是五处一起改 |
 | 端口 → 服务分类规则 | `portal.uc` 的 `classify_port()` |
 | 门户页外观百分比语义 | `portal.uc` 的 `percent()` + `root/usr/share/portal/www/portal.css` 的 CSS 自定义属性 |
 | 版本号 | `Makefile` 的 `PKG_VERSION` / `PKG_RELEASE`；安装示例版本号在 `README.md` / `README.zh-CN.md` |
@@ -132,12 +133,13 @@ luci-app-portal — 给 OpenWrt / ImmortalWrt 用的静态 HTML 导航页：跑�
 | 用户可见字符串 | `po/templates/portal.pot` + `po/zh_Hans/portal.po`（漏了中文界面会漏出英文） |
 | `Makefile` 的 `PKG_VERSION` / `PKG_RELEASE` | `README.md` / `README.zh-CN.md` 安装示例的版本号 |
 | uci 配置项 / 设置键 | 本文件 §8 坐标表对应行 + `README*.md` 的 *uci reference* |
+| 门户静态文件的落点 / 子路径 | 本文件 §8 坐标表该行（`portal.uc` 的 `WWW`+`URL_BASE`、`init.d/portal` 的 `PORTAL_WWW`、ACL 文件白名单、`assets.js` 的三个常量）+ `Makefile` 的 postinst / prerm 路径 |
 | 架构 / 分层 / 不变式 | `docs/architecture.md`；需要留痕的追加 `docs/adr/` |
 | 命令或门禁 | 本文件 §2 → `CONTRIBUTING.md`「本地检查」→ `.github/workflows/build.yml`，三者必须一致 |
 | 红线 / DoD | `docs/definition-of-done.md` 同步（不得放宽） |
 | 章节标题 | 全仓扫一遍按「§N」引用本文件的地方 |
 | 决策理由变更 | 新增一条 ADR，`docs/adr/` 旧记录原样保留 |
-| 发版（打 tag / 建 Release） | tag 用 `v2.0.0-rN`；release title 与 tag 一致；`CHANGELOG.md` 的 `[Unreleased]` 改名 `[2.0.0-rN] - 日期`（不带 v），顶部补空的 `[Unreleased]` |
+| 发版（打 tag / 建 Release） | tag 用 `v<PKG_VERSION>-r<PKG_RELEASE>`（两个值取自 `Makefile`，见 §8）；release title 与 tag 一致；`CHANGELOG.md` 的 `[Unreleased]` 改名 `<PKG_VERSION>-r<PKG_RELEASE> - 日期`（不带 v），顶部补空的 `[Unreleased]` |
 
 其中「`portal.uc` 方法表」与「用户可见字符串」两行漏掉时 `scripts/check.sh` 会抓到；
 其余几行不会 —— 靠这张表和 review。

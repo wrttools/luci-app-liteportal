@@ -7,36 +7,42 @@ port by a dedicated `uhttpd` instance and configured entirely from LuCI.
 
 ## What it does
 
-The router keeps serving its normal LuCI on its usual port. This app adds a
-second, deliberately minimal page — a grid of bookmarks to the services running
-on the router (or anywhere else) — on a port of your choice. Bookmarks, icons
-and the background are stored in `uci` and baked into a static `links.json`, so
-the portal page itself never needs a backend.
+The router keeps serving its normal LuCI exactly as before. This app adds a
+deliberately minimal page next to it — a grid of bookmarks to the services
+running on the router (or anywhere else) — on a path of the *same* web server,
+so there is no second daemon to run and no extra port to open in the firewall.
+Bookmarks, icons and the background are stored in `uci` and baked into a static
+`links.json`, so the portal page itself never needs a backend.
 
 ```
-                    ┌──────────────────────────────┐
-   :80 / :443  ────►│  uhttpd  (main LuCI stack)   │
-                    └──────────────────────────────┘
-   :8180       ────►┌──────────────────────────────┐      ┌────────────────────┐
-   (configurable)   │  uhttpd  (own instance)│◄─────│ /etc/portal/www/   │
-                    │  procd: /etc/init.d/portal   │      │  index.html        │
-                    └──────────────────────────────┘      │  portal.js/.css    │
-                                                          │  links.json  ◄── uci
-   LuCI  ─── /admin/services/portal ──────────────────►   │  bg/  icons/       │
-                                                          └────────────────────┘
+                    ┌──────────────────────────────────────┐
+   :80 / :443  ────►│  uhttpd  (the router's web server)   │
+                    │    /         → LuCI                  │
+                    │    /portal/  → the portal page       │
+                    └──────────────────┬───────────────────┘
+                                       │ served straight from disk
+                                       ▼
+                    ┌──────────────────────────────────────┐
+                    │  /www/portal/                        │
+                    │    index.html  portal.js  portal.css │
+                    │    links.json   ◄── baked from uci   │
+                    │    bg/  icons/  ◄── uploads land here│
+                    └──────────────────────────────────────┘
+                                       ▲
+   LuCI  ── /admin/services/portal ────┘   publishes / withdraws the page
 ```
 
 ## Features
 
 | | |
 |---|---|
-| On/off switch | Turn the whole portal service on or off; switching it off stops the daemon and closes the port, no reboot needed |
-| Own port | Runs a second `uhttpd` on a port you pick, validated against clashes with the main instance |
+| On/off switch | Publish the page or take it off the web server; the uploaded icons and backgrounds survive either way |
+| No second daemon | Served by the `uhttpd` the router already runs, under `/portal/` — nothing extra to start, supervise or open in the firewall |
 | Bookmarks | Add, enable/disable and delete; emoji, remote URL or an image from the asset library |
 | Asset library | Upload (2 MiB per file), preview, rename, list and delete icons and background images, and pick the page background |
 | Appearance | Page title, CSS background colour or a background image, plus 0-100 sliders for background dimming, frosted blur and bookmark-card transparency |
 | Discovery | Scans `/proc/net/tcp[6]` for locally reachable listening services, adds the known web ones as *disabled* bookmarks, and asks about the rest |
-| Status panel | Reports whether the daemon is running *and* whether it actually owns the port, plus the URL and the baked bookmark count |
+| Status panel | Reports whether the page is reachable *and*, when it is not, which of the two conditions behind that is missing — plus the address and the baked bookmark count |
 | Static output | Everything is persisted in `uci` and rendered into `links.json`; the page is plain HTML/JS |
 | No `luci-compat` | Pure JavaScript views on the modern LuCI stack — no Lua runtime required |
 
@@ -51,28 +57,28 @@ the portal page itself never needs a backend.
 
 ```sh
 # OpenWrt 25.12 and newer (apk)
-apk add --allow-untrusted ./luci-app-portal-2.0.0-r23.apk
+apk add --allow-untrusted ./luci-app-portal-3.0.0-r1.apk
 
 # OpenWrt 24.10 and older (opkg), built from the matching SDK
-opkg install ./luci-app-portal_2.0.0-r23_all.ipk
+opkg install ./luci-app-portal_3.0.0-r1_all.ipk
 ```
 
 Then open **Services → Portal** in LuCI, or go straight to
-`http://<router>:8180/`.
+`http://<router>/portal/`.
 
 ## Layout
 
 | Path | Purpose |
 |---|---|
 | `htdocs/luci-static/resources/portal/common.js` | Shared helpers: RPC wrappers, status panel, error reporting |
-| `htdocs/luci-static/resources/view/portal/general.js` | LuCI view — switch, port, title, background, maintenance |
+| `htdocs/luci-static/resources/view/portal/general.js` | LuCI view — switch, title, background, appearance, maintenance |
 | `htdocs/luci-static/resources/view/portal/bookmarks.js` | LuCI view — the bookmark table |
 | `htdocs/luci-static/resources/view/portal/assets.js` | LuCI view — the icon and background image library |
 | `root/usr/share/luci/menu.d/luci-app-portal.json` | Menu registration |
 | `root/usr/share/rpcd/acl.d/luci-app-portal.json` | ubus / uci / file permissions for the views |
 | `root/usr/share/rpcd/ucode/portal.uc` | Backend: the `luci.portal` ubus object (plugin only, no CLI mode) |
-| `root/etc/init.d/portal` | procd service: `links.json` generation plus the dedicated `uhttpd` |
-| `root/usr/share/portal/www/` | Portal frontend template (`index.html`, `portal.js`, `portal.css`) |
+| `root/etc/init.d/portal` | Service script: publishes or withdraws the page and bakes `links.json`; runs no daemon of its own |
+| `root/usr/share/portal/www/` | Portal frontend template (`index.html`, `portal.js`, `portal.css`), copied into `/www/portal/` |
 | `root/etc/config/portal` | Default `uci` configuration |
 | `scripts/check.sh` | The entire local/CI gate — read this before the rest |
 | `docs/` | Architecture, DoD, configuration and the ADR log |
@@ -93,8 +99,8 @@ ubus call luci.portal scan
 #              { "port": 7890, "svc": "", "web": "unknown" } ] }
 
 ubus call luci.portal status
-# { "ok": true, "enabled": true, "running": true, "pid": 1234, "port": 8180,
-#   "listening": true, "url": "http://192.168.1.1:8180/", "links": 2,
+# { "ok": true, "enabled": true, "path": "/portal/", "published": true,
+#   "server_listening": true, "reachable": true, "links": 2,
 #   "generated": true, "generated_at": 1791124783 }
 
 # asset management - the browser may only write /tmp/portal_upload.tmp,
@@ -123,18 +129,22 @@ unrecognised ports are shown and can be added as disabled bookmarks in one go.
 The script is a plugin only — rpcd does not define `ARGV` while loading it, so it
 cannot double as a command line tool. Call it over ubus as shown above.
 
-`status` separates *alive* from *listening* on purpose: procd respawns a daemon
-that dies on startup, so a pid alone would hide a portal that never answers.
+`status` answers one question — can the page be reached — and reports the two
+conditions behind it separately, because each has a different fix: `published`
+(the entry point and `links.json` are in place) and `server_listening` (the main
+uhttpd owns one of the ports it was configured with). `reachable` is the two of
+them together. There is no `url` any more: the browser composes the address from
+its own origin plus `path`, which is the one address guaranteed to be the server
+that is actually serving the page.
 
 ## uci reference
 
 ```
 config portal
-	option enabled           '1'         # master switch; '0' stops the portal
-	option port              '8180'      # listening port of the portal
+	option enabled           '1'         # master switch; '0' takes the page off the web server
 	option title             'My Portal' # page heading and <title>
 	option background        '#0e1116'   # CSS colour
-	option background_file   ''          # absolute path below /etc/portal/www
+	option background_file   ''          # absolute path below /www/portal
 	option bg_veil           '78'        # 0-100: how strongly a background image is dimmed
 	option bg_blur           '0'         # 0-100: frosted blur, 100 = the 20 px maximum
 	option card_transparency '45'        # 0-100: 100 = bookmark cards fully see-through
@@ -142,9 +152,18 @@ config portal
 config link
 	option name     'AdGuard Home'
 	option url      'http://192.168.1.1:3000'
-	option icon_url '🛡️'              # or: option icon '/etc/portal/www/icons/x.png'
+	option icon_url '🛡️'              # or: option icon '/www/portal/icons/x.png'
 	option enabled  '1'
 ```
+
+The `port` option the previous release wrote here is gone along with the
+dedicated instance: the page is reachable on whatever port the main uhttpd
+listens on, and a leftover `port` in the file is simply ignored.
+
+`enabled` is no longer "start or stop a daemon" but "publish or withdraw the
+page". Switching it off removes the entry point and `links.json` from
+`/www/portal/`, so `/portal/` stops resolving; the uploaded icons and
+backgrounds are left alone and come back when it is switched on again.
 
 `links.json` carries the title, the background and the three appearance
 percentages as they are written in uci; `portal.js` turns the percentages into
@@ -168,14 +187,16 @@ ubus call luci.portal status
 | Symptom | Cause |
 |---|---|
 | `enabled: false` | The switch in *General* is off — tick it and press **Save & Apply** |
-| `running: true` but `listening: false` | The daemon is up but cannot bind — another service already holds the port |
-| `running: false` | It was never started: `/etc/init.d/portal enable && /etc/init.d/portal start` |
+| `published: false` | The page is not on disk: the service has not run yet, or the switch is off. `sh /etc/init.d/portal start` publishes it |
+| `server_listening: false` | The main uhttpd is not listening on any port it was configured with — check `/etc/config/uhttpd` |
+| `/portal/` answers 404 although the panel says *reachable* | The main instance's `option home` is not `/www`, so it is serving a different tree |
 | Page loads, but no bookmarks | `links.json` missing or empty — press **Regenerate links.json now** |
-| Works from the router (`curl http://127.0.0.1:PORT/`) but not from a client | Firewall/zone rule blocks that port for that client |
 | *Access denied* in the browser console | A ubus method is missing from the ACL — run `sh scripts/check.sh` |
 
-The instance binds `0.0.0.0:<port>` — every interface, IPv4. Binding a single
-address would need an edit to `/etc/init.d/portal`.
+The page is served by the main uhttpd, so it inherits that instance's listen
+addresses and firewall rules — there is no separate port to unblock. The flip
+side is worth knowing before you enable it: `/portal/` is reachable wherever LuCI
+is, including from the WAN if the admin interface is exposed there.
 
 ## Known limitations
 
@@ -183,7 +204,8 @@ address would need an edit to `/etc/init.d/portal`.
 |---|---|
 | Uploads are capped at 2 MiB | Enforced in the UI *and* in the backend, so a hand crafted request cannot bypass it. Multi-megabyte backgrounds are served fine — only the upload is bounded |
 | File names are ASCII only: letters, digits, `.`, `-`, `_` | The name becomes a device path. Rejecting is safer than silently rewriting what the user typed, and it rules out path traversal by construction. Chinese names and spaces are refused |
-| Thumbnails need the portal's own HTTP port | They are fetched from `http://<router>:<port>/…` instead of being inlined over ubus, which is what lifts the 256 KiB inline limit. When LuCI itself is on **HTTPS**, the browser would block those as mixed content, so the thumbnail degrades to a text link |
+| The page is reachable wherever LuCI is | It is served by the same uhttpd and therefore inherits the admin interface's exposure — there is no separate port left closed. Putting it out of reach would mean putting LuCI out of reach |
+| The location is fixed at `/portal/` | It has to live inside the main instance's `option home` (default `/www`), and the LuCI-side file ACL is a static list — a custom `home` needs the package adjusted |
 | Unrecognised ports are not probed | Deciding whether a port speaks HTTP would need an active `GET /` with a timeout inside a synchronous ubus method, which blocks the whole rpcd — and therefore every other LuCI page. They are listed for you to decide instead |
 | Setting a background image is staged, not applied | Like every other setting, it waits for **Save & Apply**. `generate()` runs in the backend process with its own `uci` cursor and would otherwise bake the old value |
 

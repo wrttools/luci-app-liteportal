@@ -5,21 +5,42 @@
 
 ## [Unreleased]
 
+## [3.0.0-r1] - 2026-10-12
+
 ### Added
 
 - 新增 `.github/pull_request_template.md`；`AGENTS.md` 增补 §8 单一事实源坐标、§9 同改矩阵，红线分为阻断级 / 提醒级。
+- **主版本升到 3.0.0**：部署模型由「门户跑自己的 uhttpd 实例」改为「复用主 uhttpd 的子路径」，
+  uci 与 `luci.portal status` 契约随之破坏性变更，故按语义化版本升主版本。
 
 ### Changed
 
--
+- **门户不再由独立的 `uhttpd` 实例提供服务**：改由路由器已在运行的主 uhttpd 在
+  `/portal/` 子路径下提供，页面与素材落在 `/www/portal/`。省掉一个常驻进程与一个自选
+  端口，也不再需要单独放行防火墙；缩略图与 LuCI 同源，因此「LuCI 走 HTTPS 时缩略图被
+  按混合内容拦截」这条限制随之消失。决策与取舍见
+  [docs/adr/0004](docs/adr/0004-serve-portal-from-main-uhttpd.md)。
+- `enabled` 开关的语义由「启停守护进程」改为「发布 / 撤下页面」：关闭时从
+  `/www/portal/` 移除入口文件与 `links.json`，用户上传的图标与背景图保留，重新开启
+  即恢复。
+- `/etc/init.d/portal` 每次启动都刷新模板文件（原先只在 `index.html` 缺失时拷贝），
+  使包升级能真正替换掉旧的 `index.html` / `portal.js` / `portal.css`。
+- 设置页的「运行状态」面板改为「可访问」提示：去掉 PID / 端口 / 监听三行，改为
+  `published` 与 `server_listening` 共同决定 `reachable`，并在不可访问时说明是哪一层
+  不满足。
 
 ### Fixed
 
--
+- 升级保留既有素材：postinst 会把旧位置 `/etc/portal/www/{icons,bg}` 的内容搬到
+  `/www/portal/` 下，**仅在目标目录尚不存在时**搬运，不覆盖、不合并。
 
 ### Removed
 
--
+- uci 的 `port` 选项 —— 页面不再有自己的端口；配置里残留的值会被忽略。
+- `luci.portal status` 的 `running` / `pid` / `port` / `listening` / `url` 字段，改为
+  `path` / `published` / `server_listening` / `reachable`（**破坏性**，调用方需跟改）。
+- `portal/common.js` 的 `port_in_use()`，以及各视图对 `uhttpd` 配置的读取 —— 不再有
+  「门户端口是否与主实例冲突」这回事。
 
 ## [2.0.0-r23] - 2026-10-06
 
