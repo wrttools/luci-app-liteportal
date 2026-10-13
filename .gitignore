@@ -6,6 +6,8 @@
 /dl/
 /feeds/
 /logs/
+# local scratch for an out-of-tree SDK build and the device test script
+/.build/
 .config
 .config.old
 .config.orig
