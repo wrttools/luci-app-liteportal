@@ -189,6 +189,16 @@ return view.extend({
 			 * The defaults are what portal.css hard-coded before these options existed
 			 * (a 78% scrim, no blur, cards at 45% transparency), so a configuration
 			 * that predates them keeps rendering exactly as before.
+			 *
+			 * `rmempty` is deliberately left at its default (true) and must not be
+			 * set to false here. RangeSliderValue.formvalue() returns null for a
+			 * value that equals `default` - that is how it elides a redundant key
+			 * on save - and the form then either removes the option or, when
+			 * rmempty is false, refuses the save with "Option ... must not be
+			 * empty." A freshly installed package ships exactly those defaults, so
+			 * a plain Save-and-Apply without touching a single slider trips it on
+			 * all three. Leaving rmempty alone means the backend's percent() fills
+			 * the value back in, which is the same number anyway.
 			 */
 			o = s.option(form.RangeSliderValue, 'bg_veil', _('Background veil'),
 				_('How strongly a background image is dimmed, in percent. 0 leaves the ' +
@@ -199,7 +209,6 @@ return view.extend({
 			o.step = 1;
 			o.default = 78;
 			o.calcunits = '%';
-			o.rmempty = false;
 
 			o = s.option(form.RangeSliderValue, 'bg_blur', _('Background blur'),
 				_('Frosted-glass blur applied to a background image, in percent of the ' +
@@ -209,7 +218,6 @@ return view.extend({
 			o.step = 1;
 			o.default = 0;
 			o.calcunits = '%';
-			o.rmempty = false;
 
 			o = s.option(form.RangeSliderValue, 'card_transparency',
 				_('Bookmark transparency'),
@@ -221,7 +229,6 @@ return view.extend({
 			o.step = 1;
 			o.default = 45;
 			o.calcunits = '%';
-			o.rmempty = false;
 
 			/* ----------------------------------------------------- Maintenance -- */
 
