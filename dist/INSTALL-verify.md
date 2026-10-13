@@ -5,9 +5,9 @@
 
 ```
 dist/luci-app-portal-3.0.0-r2.apk              26014 bytes
-  sha256 87d70567cd3786fb50ee1a7e31677de8f6c7614bac620e6839ff29f1fd632d1f
+  sha256 cd3182a9de5ddd8b6de5（维护区段移入书签页后重建）
 dist/luci-i18n-portal-zh-cn-3.0.0.apk           3611 bytes
-  sha256 4e6277e5761b20f1dfe6dd1d4d70bf6c7f9286b4b0a108d4ab642140cfe0bbab
+  sha256 b5245ed0910f3e6366ed
 ```
 
 > i18n 包每次重建内容都会变（lmo 内嵌时间戳），部署前以现场 `sha256sum *.apk` 为准。
@@ -193,14 +193,14 @@ if (fval == null || fval == '') {
 
 ## 5. 构建产物
 
-三轮编译（首轮 / 修缺陷 / 改命名）的 sha256。**i18n 包每次重建内容都会变**
+四轮编译（首轮 / 修三处缺陷 / 改文件命名 / 移动维护区段）的 sha256。**i18n 包每次重建内容都会变**
 （lmo 内嵌时间戳），部署前以现场 `sha256sum *.apk` 为准。
 
 ```
 dist/luci-app-portal-3.0.0-r2.apk              26014 bytes  (修复后)
-  sha256 87d70567cd3786fb50ee1a7e31677de8f6c7614bac620e6839ff29f1fd632d1f
+  sha256 cd3182a9de5ddd8b6de5（维护区段移入书签页后重建）
 dist/luci-i18n-portal-zh-cn-3.0.0.apk           3611 bytes
-  sha256 4e6277e5761b20f1dfe6dd1d4d70bf6c7f9286b4b0a108d4ab642140cfe0bbab
+  sha256 b5245ed0910f3e6366ed
 ```
 
 ## 6. 卸载与重装

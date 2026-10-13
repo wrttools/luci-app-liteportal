@@ -374,6 +374,18 @@ return view.extend({
 				_('The tiles shown on the portal page. Only enabled bookmarks are baked ' +
 				  'into links.json.'));
 
+			/*
+			 * Maintenance sits above the list because both its buttons act on it:
+			 * the scan stages new bookmarks here, so having it below meant
+			 * scrolling past everything to find a control whose result appears
+			 * above where you clicked.
+			 *
+			 * The section is built in common.js - the Bookmarks page is the
+			 * only one that uses it now, but the scan rules it carries are not
+			 * something to keep per-page.
+			 */
+			common.maintenance_section(m, null);
+
 			s = m.section(BookmarkTable, 'link', _('Bookmarks'));
 			s.anonymous = true;
 			s.addremove = true;
