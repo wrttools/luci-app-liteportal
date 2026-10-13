@@ -5,6 +5,18 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **「维护」区段从常规页移到书签页，位于书签列表上方**：「立即重新生成 links.json」与
+  「扫描本地服务并添加」两个按钮原本在常规页末尾，而扫描的结果是新增书签 —— 按钮在列表
+  下面、效果出现在按钮上面，操作时需要来回找。区段的定义随之移入
+  `portal/common.js` 的 `maintenance_section()`，由书签页在列表之前调用：两个按钮共用
+  同一份扫描规则，而不是各留一份日后走偏。随之移入 common 的还有 `scan_services()`
+  与 `confirm_unknown()`。
+
+  用户可见字符串未变，`po/templates/portal.pot` 与 `po/zh_Hans/portal.po` 的行号引用
+  已用 xgettext + msgmerge 同步。
+
 ### Fixed
 
 - **`enabled=0` 关闭门户后 `/portal/` 不再返回 uhttpd 的目录索引页**：uhttpd 对「有目录、

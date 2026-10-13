@@ -1,6 +1,8 @@
 'use strict';
 'require rpc';
 'require ui';
+'require uci';
+'require form';
 'require baseclass';
 
 /*
@@ -56,6 +58,131 @@ function render_error_block(err) {
 	return E('div', { class: 'alert-message error' }, [
 		E('p', {}, _('Error')),
 		E('pre', { style: 'white-space:pre-wrap' }, String((err && err.message) || err))
+	]);
+}
+
+/*
+ * Discover the locally reachable services and add the ones that are not
+ * bookmarked yet as disabled entries. The changes are only staged here - the
+ * user still has to tick the ones they want and apply, which is what the button
+ * caption promises.
+ *
+ * The backend sorts the ports into three buckets rather than guessing:
+ * services a browser cannot open (ssh, dns, a VPN) are dropped, known web
+ * services are added, and everything else is reported as unrecognised. A port
+ * number carries no protocol information - 7890 may be a proxy or an arbitrary
+ * TCP service, 1053 is mDNS - so anything else would be a coin flip, and a
+ * wrong bookmark is worse than an extra click.
+ */
+function scan_services() {
+	return callScan().then(function(result) {
+		const entries = (result && result.ports) || [];
+		const host = (result && result.lan_ip) || window.location.hostname;
+		let added = 0;
+		let unknown = [];
+
+		const add = function(entry) {
+			const url = 'http://' + host + ':' + entry.port;
+
+			const known = uci.sections('portal', 'link').some(function(section) {
+				return uci.get('portal', section['.name'], 'url') === url;
+			});
+
+			if (known)
+				return;
+
+			const sid = uci.add('portal', 'link');
+
+			uci.set('portal', sid, 'name', entry.svc || _('Service %d').format(entry.port));
+			uci.set('portal', sid, 'url', url);
+			uci.set('portal', sid, 'icon_url', '🔌');
+			uci.set('portal', sid, 'enabled', '0');
+			added++;
+		};
+
+		entries.forEach(function(entry) {
+			if (entry.web === true)
+				add(entry);
+			else if (entry.web === 'unknown')
+				unknown.push(entry);
+		});
+
+		if (!added)
+			return { added: 0, unknown: unknown };
+
+		return uci.save().then(function() {
+			return { added: added, unknown: unknown };
+		});
+	});
+}
+
+/*
+ * Ask what to do about the ports the scan could not classify.
+ *
+ * Dropping them silently would lose a service the user runs on an unusual
+ * port; adding them automatically would put ssh and mDNS on the page. So they
+ * are listed and the choice is explicit, and even when accepted they land
+ * disabled like everything else the scan finds.
+ *
+ * `self` is the common instance: run_rpc() is a prototype method, so this
+ * module-level function cannot reach it on its own.
+ */
+function confirm_unknown(self, result) {
+	const unknown = (result && result.unknown) || [];
+	const host = (result && result.lan_ip) || window.location.hostname;
+	const list = unknown
+		.map(function(entry) { return String(entry.port); })
+		.join(', ');
+
+	ui.showModal(_('Unrecognised ports'), [
+		E('p', {}, _('These listening ports could not be classified: %s').format(list)),
+		E('p', { class: 'cbi-value-description' },
+			_('A port number does not say which protocol is spoken on it, so they ' +
+			  'were neither added nor dropped automatically.')),
+		E('div', { class: 'right' }, [
+			E('button', {
+				class: 'btn',
+				click: function() { ui.hideModal(); }
+			}, _('Ignore')),
+			' ',
+			E('button', {
+				class: 'btn cbi-button cbi-button-action',
+				click: function() {
+					ui.hideModal();
+
+					return self.run_rpc(function() {
+						let added = 0;
+
+						unknown.forEach(function(entry) {
+							const url = 'http://' + host + ':' + entry.port;
+
+							const known = uci.sections('portal', 'link').some(function(section) {
+								return uci.get('portal', section['.name'], 'url') === url;
+							});
+
+							if (known)
+								return;
+
+							const sid = uci.add('portal', 'link');
+
+							uci.set('portal', sid, 'name', entry.svc || _('Service %d').format(entry.port));
+							uci.set('portal', sid, 'url', url);
+							uci.set('portal', sid, 'icon_url', '🔌');
+							uci.set('portal', sid, 'enabled', '0');
+							added++;
+						});
+
+						return uci.save().then(function() { return { added: added }; });
+					}, function(res) {
+						return _('Added %d disabled bookmark(s) - tick the ones you want and apply.')
+							.format((res && res.added) || 0);
+					}).then(function(res) {
+							if (res && res.added)
+								window.setTimeout(function() { window.location.reload(); }, 1500);
+						});
+				}
+			}, _('Add as disabled bookmarks'))
+		])
 	]);
 }
 
@@ -303,6 +430,88 @@ return baseclass.extend(/** @lends LuCI.portal.common.prototype */ {
 		node.refresh = refresh;
 
 		return node;
+	},
+
+	/*
+	 * The Maintenance section: regenerate links.json, and scan the router for
+	 * locally reachable services.
+	 *
+	 * It lives here rather than in either view because it is needed by both,
+	 * and a copy per page would drift - the scan in particular has a rule about
+	 * which ports may be added without asking, and two copies of that rule are
+	 * two chances to get it wrong. The caller decides where it goes; the Bookmarks
+	 * page puts it above the list, since the scan writes bookmarks.
+	 *
+	 * `status` is the panel returned by status_panel(); regenerating the page
+	 * changes what it reports, so it is refreshed afterwards. It may be null on
+	 * a page that shows no such panel.
+	 */
+	maintenance_section: function(m, status) {
+		const s = m.section(form.TypedSection, 'portal', _('Maintenance'));
+
+		s.anonymous = true;
+		s.addremove = false;
+
+		let o = s.option(form.Button, '_generate', _('Static page'));
+
+		o.inputtitle = _('Regenerate links.json now');
+		o.inputstyle = 'apply';
+		o.onclick = function() {
+			return this.run_rpc(function() {
+				return this.callGenerate();
+			}, function(result) {
+				return _('Regenerated: %d bookmark(s).')
+					.format((result && result.links) || 0);
+			}.bind(this)).then(function() {
+				if (status != null)
+					return status.refresh();
+			}.bind(this));
+		}.bind(this);
+
+		o = s.option(form.Button, '_scan', _('Discovery'));
+		o.inputtitle = _('Scan local services & add (disabled)');
+		o.inputstyle = 'action';
+		o.onclick = function() {
+			return this.run_rpc(scan_services, function(result) {
+				const added = (result && result.added) || 0;
+				const unknown = (result && result.unknown) || [];
+
+				if (added && !unknown.length)
+					return _('Added %d disabled bookmark(s) - tick the ones you want and apply.')
+						.format(added);
+
+				if (added && unknown.length)
+					return _('Added %d bookmark(s); %d port(s) were not recognised.')
+						.format(added, unknown.length);
+
+				if (!added && !unknown.length)
+					return _('No new local services found.');
+
+				return null;
+			}.bind(this)).then(function(result) {
+				const unknown = (result && result.unknown) || [];
+
+				/*
+				 * Unrecognised ports are not added and not forgotten: offer
+				 * them explicitly, so the decision stays with the user
+				 * instead of being made by a guess in either direction.
+				 */
+				if (unknown.length)
+					return confirm_unknown(self, result);
+
+				/*
+				 * The staged bookmarks only become visible on the Bookmarks
+				 * page, so redraw it - but give the notification a moment
+				 * first, a reload would wipe it instantly.
+				 */
+				if (result && result.added)
+					window.setTimeout(function() { window.location.reload(); }, 1500);
+
+				return result;
+			});
+		}.bind(this);
+
+		return s;
 	},
 
 	callStatus: callStatus,
