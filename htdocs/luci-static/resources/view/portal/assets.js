@@ -229,6 +229,71 @@ function refresh_assets() {
 }
 
 /*
+ * Turn a picked file's name into one the backend accepts.
+ *
+ * The backend's rule is `^[A-Za-z0-9_.\-]+$` and it does not relax it, which is
+ * the point: the name ends up in a device path and the class has to be one no
+ * browser or shell can escape a directory with.
+ *
+ * Replacing every offending character with an underscore - which is what this
+ * used to do - satisfies that rule and nothing else. A name like
+ * "AI训练背景.jpg" came out as "______AI__-__-__.jpg": six underscores in a row,
+ * no way to tell what was uploaded, and two different pictures whose names
+ * differ only in the Chinese part collide outright. Sanitising a name the user
+ * typed is bad in general, and it is worse when the result is unreadable.
+ *
+ * So the ASCII is kept and only the rest is dropped: "AI训练背景.jpg" becomes
+ * "AI.jpg", which is both valid and recognisable. A name that was all
+ * non-ASCII leaves nothing behind, so it gets "image"; the extension always
+ * survives, since it is what the MIME table and the server content type key
+ * off. The caller resolves collisions by appending a number before the
+ * extension.
+ */
+function safe_name(original) {
+	const base = original.replace(/^.*[\\/]/, '');
+	const dot = base.lastIndexOf('.');
+	const stem = (dot > 0) ? base.slice(0, dot) : base;
+	const ext = (dot > 0) ? base.slice(dot) : '';
+
+	/* Collapse the runs of dropped characters into a single separator, so the
+	 * remaining words stay apart instead of being glued together. */
+	const kept = stem.replace(/[^A-Za-z0-9.\-]+/g, '-')
+		.replace(/-{2,}/g, '-')
+		.replace(/^[-.]+|[-.]+$/g, '');
+
+	return (kept || 'image') + ext.replace(/[^A-Za-z0-9.]/g, '');
+}
+
+/*
+ * Pick a name that is not taken yet. The backend refuses an existing name
+ * rather than overwriting it - the file behind it may be a user's background -
+ * so the number has to be added here, and the extension kept last for the MIME
+ * table. taken() is answered from the list already on screen, which the caller
+ * has just rendered, so this does not need a round trip of its own.
+ */
+function unique_name(name, taken) {
+	const has = function(n) {
+		return (taken || []).indexOf(n) >= 0;
+	};
+
+	if (!has(name))
+		return name;
+
+	const dot = name.lastIndexOf('.');
+	const stem = (dot > 0) ? name.slice(0, dot) : name;
+	const ext = (dot > 0) ? name.slice(dot) : '';
+
+	for (let i = 2; i < 1000; i++) {
+		const candidate = stem + '-' + i + ext;
+
+		if (!has(candidate))
+			return candidate;
+	}
+
+	return stem + '-' + Date.now() + ext;
+}
+
+/*
  * Upload through LuCI's own cgi-upload endpoint, the very path its file upload
  * widget uses. Unlike ubus it is not constrained by the message size limit.
  *
@@ -236,13 +301,13 @@ function refresh_assets() {
  * backend resolves the destination itself and moves the file there, so the
  * request cannot place a file outside the two asset directories.
  */
-function upload(dir, file) {
+function upload(dir, file, taken) {
 	if (file.size > MAX_UPLOAD)
 		return common.run_rpc(function() {
 			throw new Error(_('Image is larger than 2 MiB (%s).').format(human_size(file.size)));
 		}, null);
 
-	const name = file.name.replace(/^.*[\\/]/, '').replace(/[^A-Za-z0-9_.\-]/g, '_');
+	const name = unique_name(safe_name(file.name), taken);
 	const data = new FormData();
 
 	data.append('sessionid', rpc.getSessionID());
@@ -265,7 +330,7 @@ function upload(dir, file) {
 	});
 }
 
-function upload_button(dir) {
+function upload_button(dir, taken) {
 	const input = E('input', {
 		type: 'file',
 		accept: 'image/*',
@@ -276,7 +341,7 @@ function upload_button(dir) {
 			ev.currentTarget.value = '';
 
 			if (file != null)
-				upload(dir, file);
+				upload(dir, file, taken);
 		}
 	});
 
@@ -436,7 +501,8 @@ function asset_section(title, dir, entries, current_bg) {
 
 	return E('div', { class: 'cbi-section' }, [
 		E('h3', {}, title),
-		E('div', { style: 'margin-bottom:.6em' }, upload_button(dir)),
+		E('div', { style: 'margin-bottom:.6em' },
+			upload_button(dir, entries.map(function(e) { return e.name; }))),
 		rows.length
 			? E('table', { class: 'table' }, [
 				E('tr', { class: 'tr table-titles' }, [
