@@ -55,10 +55,10 @@
 
 ```sh
 # OpenWrt 25.12 及更新（apk）
-apk add --allow-untrusted ./luci-app-portal-3.0.0-r1.apk
+apk add --allow-untrusted ./luci-app-portal-3.0.0-r2.apk
 
 # OpenWrt 24.10 及更早（opkg），需用对应 SDK 构建
-opkg install ./luci-app-portal_3.0.0-r1_all.ipk
+opkg install ./luci-app-portal_3.0.0-r2_all.ipk
 ```
 
 然后进 LuCI 的**服务 → Portal**，或直接访问 `http://<路由器>/portal/`。
