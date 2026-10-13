@@ -522,7 +522,23 @@ function generate() {
 		links: collect_links(uci)
 	};
 
-	if (general.background_file != null && general.background_file != '') {
+	/*
+	 * The image takes precedence over the plain colour, so the file is
+	 * consulted first - and a configured-but-missing file must not be handed
+	 * to the browser as if it were there. It used to be: stat() below only
+	 * left background_v empty, while data.background kept pointing at the
+	 * gone file, so the page rendered its solid fallback colour with no hint
+	 * that anything was wrong. The Assets page, which lists the directory
+	 * itself, showed nothing - the two views disagreed and the user had no
+	 * way to tell that the background had silently stopped existing.
+	 *
+	 * Falling back to `background` when the file is gone makes the page say
+	 * what it is actually showing, and matches what the settings page reports.
+	 */
+	const bgfile = asset_file(general.background_file, 'bg');
+	const bginfo = (bgfile != null) ? stat(bgfile) : null;
+
+	if (bginfo != null) {
 		data.background = asset_path(general.background_file, 'bg');
 
 		/*
@@ -538,11 +554,7 @@ function generate() {
 		 * covers the common case (a different picture), and the pair is still
 		 * a short token in the URL.
 		 */
-		const file = asset_file(general.background_file, 'bg');
-		const info = (file != null) ? stat(file) : null;
-
-		if (info != null)
-			data.background_v = sprintf('%d-%d', info.mtime, info.size);
+		data.background_v = sprintf('%d-%d', bginfo.mtime, bginfo.size);
 	}
 	else if (general.background != null && general.background != '')
 		data.background = general.background;

@@ -18,11 +18,13 @@ PORTAL_WWW=/www/portal
 
 # Refresh the template files and re-bake links.json.
 #
-# The three template files are copied over on every start, not only when they are
-# missing: they are ours, not the user's, so a package upgrade has to replace
-# them. An index.html or portal.js left behind from an older package would keep
-# talking to a layout the new backend no longer writes. links.json and the two
-# asset directories are the only things under here that belong to the user.
+# The missing files are ours, not the user's, so a package upgrade has to
+# replace them. An index.html or portal.js left behind from an older package
+# would keep talking to a layout the new backend no longer writes. links.json
+# and anything under the two asset directories belong to the user; the
+# directories themselves are recreated here because unpublish() removes them
+# when they are empty, PORTAL_WWW included - mkdir -p brings the whole chain
+# back whether or not it is still there.
 publish() {
 	mkdir -p "$PORTAL_WWW/icons" "$PORTAL_WWW/bg"
 	cp -f "$PORTAL_SRC/index.html" "$PORTAL_SRC/portal.js" "$PORTAL_SRC/portal.css" "$PORTAL_WWW/"
@@ -33,11 +35,29 @@ publish() {
 #
 # Nothing is stopped here - there is no daemon of ours - so withdrawing the page
 # means removing the two things that make the sub-path resolve: the entry point
-# and the baked data. The uploaded assets stay where they are, so switching the
-# portal back on brings it back with the user's icons and background intact.
+# and the baked data. No uploaded file is ever touched, so switching the portal
+# back on brings it back with the user's icons and background intact.
+#
+# The directories are then dropped too, outermost last. This is not tidiness:
+# uhttpd answers a directory that holds no index.html with an auto-generated
+# "Index of ..." listing and a 200, so leaving /www/portal behind means a portal
+# that is switched off still answers on its own URL and still tells the world
+# what it kept there. uhttpd does have a switch for that (-D, do not allow
+# directory listings), but it is global - it would take LuCI's own listings with
+# it - and the uhttpd config in LuCI does not expose it, so there is no
+# per-directory way out. Removing the directories is the only way to make the
+# sub-path stop resolving without touching the server or the user's files.
+#
+# rmdir, not rm -rf, and the outermost one last: rmdir refuses a directory that
+# still holds something and leaves it exactly as it was, so the deepest empty
+# shell goes first and a directory the user has put files in stops the removal
+# right there. An upload is never deleted, and publish() recreates whatever is
+# missing with mkdir -p on the way back up.
 unpublish() {
 	rm -f "$PORTAL_WWW/index.html" "$PORTAL_WWW/portal.js" \
 		"$PORTAL_WWW/portal.css" "$PORTAL_WWW/links.json"
+	rmdir "$PORTAL_WWW/icons" "$PORTAL_WWW/bg" 2>/dev/null
+	rmdir "$PORTAL_WWW" 2>/dev/null
 }
 
 # Re-bake links.json from uci. The generator is the `luci.portal` ubus object
