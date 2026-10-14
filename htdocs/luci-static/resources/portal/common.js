@@ -34,12 +34,6 @@ const callStatus = rpc.declare({
 	reject: true
 });
 
-const callGenerate = rpc.declare({
-	object: 'luci.portal',
-	method: 'generate',
-	reject: true
-});
-
 const callScan = rpc.declare({
 	object: 'luci.portal',
 	method: 'scan',
@@ -433,8 +427,15 @@ return baseclass.extend(/** @lends LuCI.portal.common.prototype */ {
 	},
 
 	/*
-	 * The Maintenance section: regenerate links.json, and scan the router for
-	 * locally reachable services.
+	 * The Maintenance section: scan the router for locally reachable services.
+	 *
+	 * It used to carry a second button that regenerated links.json on demand.
+	 * That is gone (ROADMAP #10): a configuration change already runs
+	 * `/etc/init.d/portal reload`, and procd_add_reload_trigger is registered
+	 * on the service, so "Save & Apply" re-bakes the page whether or not
+	 * anything about it changed. The button was a second path to something the
+	 * normal save already does - and a misleading one, since pressing it
+	 * republishes without fixing whatever the user came to change.
 	 *
 	 * It lives here rather than in either view because it is needed by both,
 	 * and a copy per page would drift - the scan in particular has a rule about
@@ -442,9 +443,11 @@ return baseclass.extend(/** @lends LuCI.portal.common.prototype */ {
 	 * two chances to get it wrong. The caller decides where it goes; the Bookmarks
 	 * page puts it above the list, since the scan writes bookmarks.
 	 *
-	 * `status` is the panel returned by status_panel(); regenerating the page
-	 * changes what it reports, so it is refreshed afterwards. It may be null on
-	 * a page that shows no such panel.
+	 * `status` is the panel returned by status_panel(). Nothing in the section
+	 * refreshes it at the moment - the Bookmarks page passes null and the
+	 * Bookmarks page is the only caller - but it stays a parameter because a
+	 * scan that republishes would want it, and status_panel() carries its own
+	 * refresh button for the general case.
 	 */
 	maintenance_section: function(m, status) {
 		const s = m.section(form.TypedSection, 'portal', _('Maintenance'));
@@ -452,23 +455,7 @@ return baseclass.extend(/** @lends LuCI.portal.common.prototype */ {
 		s.anonymous = true;
 		s.addremove = false;
 
-		let o = s.option(form.Button, '_generate', _('Static page'));
-
-		o.inputtitle = _('Regenerate links.json now');
-		o.inputstyle = 'apply';
-		o.onclick = function() {
-			return this.run_rpc(function() {
-				return this.callGenerate();
-			}, function(result) {
-				return _('Regenerated: %d bookmark(s).')
-					.format((result && result.links) || 0);
-			}.bind(this)).then(function() {
-				if (status != null)
-					return status.refresh();
-			}.bind(this));
-		}.bind(this);
-
-		o = s.option(form.Button, '_scan', _('Discovery'));
+		let o = s.option(form.Button, '_scan', _('Discovery'));
 		o.inputtitle = _('Scan local services & add (disabled)');
 		o.inputstyle = 'action';
 		o.onclick = function() {
@@ -515,6 +502,5 @@ return baseclass.extend(/** @lends LuCI.portal.common.prototype */ {
 	},
 
 	callStatus: callStatus,
-	callGenerate: callGenerate,
 	callScan: callScan
 });
