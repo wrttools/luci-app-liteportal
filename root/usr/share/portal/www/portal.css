@@ -116,11 +116,17 @@ h1 { font-weight: 600; letter-spacing: .5px; margin: 0 0 4px; text-shadow: 0 1px
  * only when links.json carries a template, so a portal without the feature has
  * no such element at all. The surface borrows the card recipe (translucent dark
  * plus frosted glass) so it stays legible over any background image.
+ *
+ * Hidden until the space bar calls it up - the .open class is the whole
+ * difference between the two states.
  */
 .search {
-  display: flex;
+  display: none;
   margin: 20px auto 0;
   max-width: 460px;
+}
+.search.open {
+  display: flex;
 }
 .search input {
   width: 100%;

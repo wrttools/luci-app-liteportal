@@ -42,6 +42,11 @@ function apply_appearance(d) {
  * A missing or null `search` (the switch off, or a template that failed
  * validation in the backend) leaves no trace in the DOM, so a portal without
  * the feature renders exactly as it did before.
+ *
+ * The box is hidden until the space bar calls it up. The portal is a page of
+ * links, and an input sitting there permanently competes with them for
+ * attention - so the element exists from the start (a class swap, not a
+ * rebuild, stands between the two states) and stays out of the way.
  */
 function setup_search(cfg) {
   if (!cfg || !cfg.template)
@@ -61,6 +66,16 @@ function setup_search(cfg) {
 
   document.querySelector('.wrap').insertBefore(form, document.getElementById('grid'));
 
+  function show() {
+    form.classList.add('open');
+    input.focus();
+  }
+
+  function hide() {
+    form.classList.remove('open');
+    input.blur();
+  }
+
   form.addEventListener('submit', function (ev) {
     ev.preventDefault();
 
@@ -75,7 +90,49 @@ function setup_search(cfg) {
      * say) stays as configured. encodeURIComponent keeps a keyword with
      * spaces or & from breaking out of the query. */
     window.open(template.replace('%s', encodeURIComponent(q)), '_blank', 'noopener');
+
+    /* The results are in the other tab; the portal goes back to being a
+     * page of links, with nothing of the query left behind. */
     input.value = '';
+    hide();
+  });
+
+  document.addEventListener('keydown', function (ev) {
+    /*
+     * An input method turns the space bar into "commit the candidate":
+     * while one is composing, that keystroke belongs to the IME, not to us.
+     * Not checking would hide the box in the middle of typing Chinese -
+     * the single most likely way this feature gets used on this router.
+     */
+    if (ev.isComposing || ev.ctrlKey || ev.metaKey || ev.altKey)
+      return;
+
+    if (ev.key === 'Escape') {
+      hide();
+      return;
+    }
+
+    if (ev.key !== ' ')
+      return;
+
+    if (ev.target === input) {
+      /* Only an empty box hides on space; with text in it the keystroke is
+       * a space the user meant to type. */
+      if (input.value === '') {
+        ev.preventDefault();
+        hide();
+      }
+      return;
+    }
+
+    /* Any other text field on the page keeps its own space bar. */
+    var t = ev.target;
+
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable))
+      return;
+
+    ev.preventDefault();
+    show();
   });
 }
 
