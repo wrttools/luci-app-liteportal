@@ -9,6 +9,15 @@
 
 const ICON_DIR = '/www/portal/icons';
 
+/*
+ * The portal's own tree inside the main document root. Kept separate from
+ * ICON_DIR (which points one level deeper) because icon_url_of() has to slice
+ * against this one: the URL keeps the "icons/" segment, so trimming at
+ * ICON_DIR would drop it and 404 - exactly what the first release of the
+ * row thumbnail did. Same constant the rpcd plugin slices against (WWW).
+ */
+const WWW = '/www/portal';
+
 const MIME = {
 	png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
 	svg: 'image/svg+xml', webp: 'image/webp', ico: 'image/x-icon', bmp: 'image/bmp'
@@ -16,6 +25,85 @@ const MIME = {
 
 function extension(name) {
 	return (name.split('.').pop() || '').toLowerCase();
+}
+
+function basename(path) {
+	return (path || '').split('/').pop() || '';
+}
+
+/*
+ * The URL a stored icon option can be fetched from, for the row thumbnail.
+ *
+ * Mirrors asset_path() in the rpcd plugin (portal.uc), which is what the
+ * portal page itself goes through - a thumbnail that resolved differently
+ * from the tile would show a picture the portal does not show. The three
+ * shapes a stored value can take: an absolute path under /www/portal (what
+ * the Assets page writes), a bare file name (hand edited config, resolved
+ * against the icons directory), any other absolute path.
+ */
+function icon_url_of(value) {
+	if (value == null || value === '')
+		return '';
+
+	if (value.indexOf(WWW + '/') === 0)
+		return '/portal/' + value.slice(WWW.length + 1);
+
+	if (value.indexOf('/') !== 0)
+		return '/portal/icons/' + value;
+
+	return '/portal' + value;
+}
+
+/*
+ * A thumbnail of the row's asset image, for the left of the Save button.
+ *
+ * Only the icon file option drives it: an emoji or a remote URL in the
+ * "Icon" column is not an asset on this router, and pulling a third-party
+ * image into the settings page to decorate a row is not a trade worth
+ * making. Rows without an asset simply get no thumbnail.
+ */
+function make_thumb(url, name) {
+	return E('img', {
+		class: 'portal-bm-thumb',
+		src: url,
+		alt: '',
+		title: name,
+		style: 'height:1.7em;width:auto;max-width:3em;vertical-align:middle;' +
+			'margin:0 .5em 0 0;border-radius:2px;object-fit:contain;' +
+			'background:rgba(127,127,127,.15)'
+	});
+}
+
+/*
+ * Redraw the thumbnail after the icon dropdown changed, so the row reflects
+ * the new pick without waiting for a save or a reload.
+ */
+function update_thumb(map, sid, value) {
+	const tr = map.findElement('data-sid', sid);
+
+	if (tr == null)
+		return;
+
+	const old = tr.querySelector('img.portal-bm-thumb');
+	const url = icon_url_of(value);
+
+	if (url === '') {
+		if (old != null)
+			old.remove();
+
+		return;
+	}
+
+	if (old != null) {
+		old.src = url;
+		old.title = basename(value);
+		return;
+	}
+
+	const save = tr.querySelector('button.cbi-button-save');
+
+	if (save != null)
+		save.parentNode.insertBefore(make_thumb(url, basename(value)), save);
 }
 
 /*
@@ -250,6 +338,103 @@ const BookmarkTable = form.TableSection.extend({
 	},
 
 	/*
+	 * Draw extra rows at the end of the table for sections that were staged
+	 * after the page was rendered.
+	 *
+	 * The scan needed this: it used to end in window.location.reload(), which
+	 * threw away the notification, any half-finished row the user was editing
+	 * and the scroll position, all to make three new lines appear. Re-rendering
+	 * only the rows is the difference between "the list grew" and "the page
+	 * restarted".
+	 *
+	 * form.TableSection keeps its row building private - renderContents() is the
+	 * only place a <tr> is made, and it is called once, for the sections that
+	 * existed at render time. So the few lines of it that matter are repeated
+	 * here: ask the section for the cells of one sid, wrap them in a <tr>, hand
+	 * it the same attributes the real rows carry (the per-row Save button looks
+	 * up the row by data-sid to decide whether it has been saved yet, and the
+	 * responsive theme reads data-title), and append.
+	 *
+	 * The cells come from the very same option widgets as the initial render, so
+	 * a row drawn here parses and saves exactly like one drawn at load time: the
+	 * footer "Save & Apply" walks the widgets, not the DOM.
+	 */
+	append_sections(sids) {
+		const self = this;
+
+		/*
+		 * max_cols is not set on this section, so has_more is false and there is
+		 * never a "More…" button. Both are read from the section rather than
+		 * assumed, so a future max_cols here cannot silently produce rows with a
+		 * different shape than the ones the table was built with.
+		 */
+		const max_cols = this.max_cols ?? this.children.length;
+		const has_more = max_cols < this.children.length;
+
+		return Promise.all(sids.map(function(sid) {
+			/*
+			 * An option widget renders from its own cache of the config
+			 * value, filled once when the page loaded the sections that
+			 * existed at that time. A section created after that - what
+			 * the scan's uci.add() produces - is in no cache: cfgvalue()
+			 * reads nothing else, so renderUCISection() would draw empty
+			 * inputs for exactly the rows just staged.
+			 *
+			 * Loading each option for this sid first, and writing the
+			 * value back through the same two-argument cfgvalue() form
+			 * that CBIAbstractSection.load() uses, puts the new row on
+			 * the same footing as the ones drawn at page load. The read
+			 * reaches the section because uci.get() consults the pending
+			 * creates before the loaded values - the section is not in
+			 * the configuration yet, it is in the transaction.
+			 */
+			return Promise.all(self.children.map(function(opt) {
+				return Promise.resolve(opt.load(sid)).then(function(value) {
+					opt.cfgvalue(sid, value);
+				});
+			})).then(function() {
+				return Promise.resolve(self.renderUCISection(sid));
+			}).then(function(nodes) {
+				const trEl = E('tr', {
+					id: 'cbi-%s-%s'.format(self.map.config, sid),
+					class: 'tr cbi-section-table-row',
+					'data-sid': sid,
+					'data-section-id': sid
+				});
+
+				/*
+				 * renderOptions() hands back one container holding the cells, and
+				 * the initial render drains it the same way - appendChild moves a
+				 * node out of its parent, so this loop walks the cells out one by
+				 * one.
+				 */
+				for (let i = 0; i < max_cols && nodes.firstChild; i++)
+					trEl.appendChild(nodes.firstChild);
+
+				trEl.appendChild(self.renderRowActions(sid, has_more ? _('More…') : null, trEl));
+
+				return trEl;
+			});
+		})).then(function(rows) {
+			const tbody = self.section_node.querySelector('tbody');
+
+			/*
+			 * An empty table carries a placeholder row saying so. Leaving it in
+			 * place under real rows is how a table ends up claiming to be empty
+			 * while showing bookmarks.
+			 */
+			const placeholder = tbody.querySelector('tr.placeholder');
+
+			if (placeholder != null)
+				placeholder.remove();
+
+			rows.forEach(function(row) { tbody.appendChild(row); });
+
+			self.sync_select_all();
+		});
+	},
+
+	/*
 	 * The per-row "Save" button, placed left of LuCI's "Delete". It commits this
 	 * row only - the other rows, including a half filled one that has not been
 	 * saved yet, are left alone.
@@ -269,9 +454,9 @@ const BookmarkTable = form.TableSection.extend({
 			click: function(ev) {
 				ev.preventDefault();
 
-				return common.run_rpc(function() {
-					return save_row(section, section_id);
-				}, _('Bookmark saved.')).then(function(res) {
+			return common.run_rpc(function() {
+				return save_row(section, section_id);
+			}, null).then(function(res) {
 					/*
 					 * run_rpc() resolves to null when the call failed, so the label
 					 * only switches on a real save; a rejected one keeps saying
@@ -284,6 +469,21 @@ const BookmarkTable = form.TableSection.extend({
 		}, [ _('Save') ]);
 
 		remove.parentNode.insertBefore(save, remove);
+
+		/*
+		 * The asset thumbnail goes left of the Save button, inside the same
+		 * cell: the row already carries the icon option's value in a
+		 * dropdown, and a picture of what was picked answers "which image
+		 * is this row using" faster than any control on the page. Placed
+		 * here rather than in the Icon column so the two read together -
+		 * the dropdown is where the choice is made, the thumbnail sits
+		 * next to the button that commits it.
+		 */
+		const icon = uci.get('portal', section_id, 'icon');
+		const icon_url = icon_url_of(icon);
+
+		if (icon_url !== '')
+			remove.parentNode.insertBefore(make_thumb(icon_url, basename(icon)), save);
 
 		return node;
 	},
@@ -321,11 +521,16 @@ const BookmarkTable = form.TableSection.extend({
 					? _('This removes %d disabled bookmark(s) from the configuration. It cannot be undone.').format(sids.length)
 					: _('This removes all %d bookmark(s) from the configuration. It cannot be undone.').format(sids.length),
 					function() {
-						return common.run_rpc(function() {
-							return drop_sections(sids).then(function() { return { removed: sids.length }; });
-						}, function(res) {
-							return _('Deleted %d bookmark(s).').format(res.removed);
-						}).then(function(res) {
+					return common.run_rpc(function() {
+						/*
+						 * The removed count is no longer shown - the rows
+						 * are gone from the table the moment this resolves,
+						 * which is the feedback. It is still returned so
+						 * that run_rpc() resolves non-null, which is what
+						 * the reload below keys on.
+						 */
+						return drop_sections(sids).then(function() { return { removed: sids.length }; });
+					}, null).then(function(res) {
 							if (res != null)
 								reload_soon();
 						});
@@ -375,16 +580,25 @@ return view.extend({
 				  'into links.json.'));
 
 			/*
-			 * Maintenance sits above the list because both its buttons act on it:
-			 * the scan stages new bookmarks here, so having it below meant
-			 * scrolling past everything to find a control whose result appears
-			 * above where you clicked.
+			 * Maintenance sits above the list because its scan writes this list:
+			 * having it below meant scrolling past everything to find a control
+			 * whose result appears above where you clicked.
 			 *
 			 * The section is built in common.js - the Bookmarks page is the
 			 * only one that uses it now, but the scan rules it carries are not
 			 * something to keep per-page.
+			 *
+			 * The callback is written against `table`, which is only assigned
+			 * further down: the scan button can be pressed long after render()
+			 * has returned, by which time the assignment has happened. Declaring
+			 * it first is what lets the maintenance section stay above the list
+			 * without being built after it.
 			 */
-			common.maintenance_section(m, null);
+			let table = null;
+
+			common.maintenance_section(m, null, function(sids) {
+				return table.append_sections(sids);
+			});
 
 			s = m.section(BookmarkTable, 'link', _('Bookmarks'));
 			s.anonymous = true;
@@ -400,6 +614,14 @@ return view.extend({
 			 * not rendered yet, so handing it over here is enough.
 			 */
 			s.flag = o;
+
+			/*
+			 * Read back by the scan callback above, which is why it is assigned
+			 * after it: `m.section()` returns the section object immediately, and
+			 * the scan button cannot be pressed before render() has finished
+			 * wiring this up.
+			 */
+			table = s;
 
 			o = s.option(form.Value, 'name', _('Name'));
 			o.rmempty = false;
@@ -425,6 +647,16 @@ return view.extend({
 			(this.icons || []).forEach(function(name) {
 				o.value(ICON_DIR + '/' + name, name);
 			});
+
+			/*
+			 * The thumbnail follows the dropdown without waiting for a
+			 * save: picking an image and seeing it appear next to the
+			 * Save button is how the user knows the pick took, since the
+			 * value itself is a path in a select box.
+			 */
+			o.onchange = function(ev, section_id, value) {
+				update_thumb(this.map, section_id, value);
+			};
 
 			return m.render();
 		}.bind(this));

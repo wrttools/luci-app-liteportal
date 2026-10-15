@@ -56,126 +56,150 @@ function render_error_block(err) {
 }
 
 /*
- * Discover the locally reachable services and add the ones that are not
- * bookmarked yet as disabled entries. The changes are only staged here - the
- * user still has to tick the ones they want and apply, which is what the button
- * caption promises.
+ * Ask the backend what is listening, and reduce that to the services that are
+ * actually addable: a browser can open what a port offers as HTTP, and a port
+ * that already has a bookmark is not news. Nothing is written here - this is
+ * the read-only half of the scan, so the user gets to see the list before the
+ * configuration changes.
  *
  * The backend sorts the ports into three buckets rather than guessing:
  * services a browser cannot open (ssh, dns, a VPN) are dropped, known web
- * services are added, and everything else is reported as unrecognised. A port
+ * services are offered, and everything else is offered unclassified. A port
  * number carries no protocol information - 7890 may be a proxy or an arbitrary
  * TCP service, 1053 is mDNS - so anything else would be a coin flip, and a
  * wrong bookmark is worse than an extra click.
+ *
+ * The 'unknown' bucket is returned rather than hidden so the caller can put
+ * those ports in front of the user unchecked: dropping them silently would
+ * lose a service run on an unusual port, and adding them automatically would
+ * put ssh and mDNS on the page.
  */
-function scan_services() {
+function scan_candidates() {
 	return callScan().then(function(result) {
-		const entries = (result && result.ports) || [];
 		const host = (result && result.lan_ip) || window.location.hostname;
-		let added = 0;
-		let unknown = [];
+		const seen = new Set(uci.sections('portal', 'link').map(function(sid) {
+			return uci.get('portal', sid, 'url');
+		}));
 
-		const add = function(entry) {
-			const url = 'http://' + host + ':' + entry.port;
+		return ((result && result.ports) || []).filter(function(entry) {
+			if (entry.web !== true && entry.web !== 'unknown')
+				return false;
 
-			const known = uci.sections('portal', 'link').some(function(section) {
-				return uci.get('portal', section['.name'], 'url') === url;
-			});
-
-			if (known)
-				return;
-
-			const sid = uci.add('portal', 'link');
-
-			uci.set('portal', sid, 'name', entry.svc || _('Service %d').format(entry.port));
-			uci.set('portal', sid, 'url', url);
-			uci.set('portal', sid, 'icon_url', '🔌');
-			uci.set('portal', sid, 'enabled', '0');
-			added++;
-		};
-
-		entries.forEach(function(entry) {
-			if (entry.web === true)
-				add(entry);
-			else if (entry.web === 'unknown')
-				unknown.push(entry);
-		});
-
-		if (!added)
-			return { added: 0, unknown: unknown };
-
-		return uci.save().then(function() {
-			return { added: added, unknown: unknown };
+			return !seen.has('http://' + host + ':' + entry.port);
+		}).map(function(entry) {
+			return {
+				port: entry.port,
+				svc: entry.svc,
+				web: entry.web,
+				url: 'http://' + host + ':' + entry.port
+			};
 		});
 	});
 }
 
 /*
- * Ask what to do about the ports the scan could not classify.
+ * Stage the chosen services as disabled bookmarks.
  *
- * Dropping them silently would lose a service the user runs on an unusual
- * port; adding them automatically would put ssh and mDNS on the page. So they
- * are listed and the choice is explicit, and even when accepted they land
- * disabled like everything else the scan finds.
+ * Deliberately no uci.save(): the rows are appended to the table right after,
+ * and every other input on this page works the same way - it is the footer
+ * "Save & Apply" that commits. Saving here would leave the configuration
+ * holding bookmarks that the page has not shown the user yet, and the next
+ * Save & Apply would then mix two sources of changes.
  *
- * `self` is the common instance: run_rpc() is a prototype method, so this
- * module-level function cannot reach it on its own.
+ * `enabled` is staged as '0' for the same reason the old flow set it: a
+ * service the user has not looked at yet does not belong on the portal page.
+ *
+ * Returns the new section ids, in the order they were added, so the caller can
+ * append exactly these rows.
  */
-function confirm_unknown(self, result) {
-	const unknown = (result && result.unknown) || [];
-	const host = (result && result.lan_ip) || window.location.hostname;
-	const list = unknown
-		.map(function(entry) { return String(entry.port); })
-		.join(', ');
+function stage_bookmarks(entries) {
+	return entries.map(function(entry) {
+		const sid = uci.add('portal', 'link');
 
-	ui.showModal(_('Unrecognised ports'), [
-		E('p', {}, _('These listening ports could not be classified: %s').format(list)),
-		E('p', { class: 'cbi-value-description' },
-			_('A port number does not say which protocol is spoken on it, so they ' +
-			  'were neither added nor dropped automatically.')),
+		uci.set('portal', sid, 'name', entry.svc || _('Service %d').format(entry.port));
+		uci.set('portal', sid, 'url', entry.url);
+		uci.set('portal', sid, 'icon_url', '🔌');
+		uci.set('portal', sid, 'enabled', '0');
+
+		return sid;
+	});
+}
+
+/*
+ * Present the scan result as a checklist and add what the user ticks.
+ *
+ * The confirmation is a list rather than a yes/no because "add all" is not a
+ * decision anybody can make without seeing the list - which is why the old
+ * flow, that added every recognised service the moment the button was
+ * pressed, could not be kept. Recognised services are ticked by default and
+ * unclassified ports are not, so the common case stays one click and the
+ * doubtful ones stay the user's call.
+ *
+ * `self` is the common instance: run_rpc() and notify() are prototype methods,
+ * so this module-level function cannot reach them on its own.
+ *
+ * `on_add(sids)` runs after the sections are staged. The Bookmarks page uses
+ * it to append the new rows in place, and that is the whole confirmation:
+ * the rows appearing at the end of the table say everything a toast would,
+ * and a toast would sit on top of the very rows it reports on. An earlier
+ * revision announced "Added N bookmark(s)…" here and it was removed for
+ * exactly that reason.
+ */
+function confirm_scan(self, candidates, on_add) {
+	const boxes = [];
+
+	const rows = candidates.map(function(entry, idx) {
+		const box = E('input', {
+			type: 'checkbox',
+			checked: (entry.web === true) ? true : null,
+			style: 'margin:0 .6em 0 0;vertical-align:middle'
+		});
+
+		boxes.push({ entry: entry, box: box });
+
+		return E('div', { style: 'display:flex;align-items:center;margin:.2em 0' }, [
+			box,
+			E('span', { style: 'min-width:12em' }, entry.svc || _('Service %d').format(entry.port)),
+			E('code', { style: 'opacity:.75' }, entry.url),
+			(entry.web === 'unknown') ? E('em', { style: 'margin-left:.8em' },
+				_('port not classified - a port number does not say which protocol is spoken on it')) : ''
+		]);
+	});
+
+	ui.showModal(_('Local services found'), [
+		E('p', {}, _('These local services are not bookmarked yet. The ones you tick are added as ' +
+			'disabled bookmarks, so nothing appears on the portal page until you enable them and ' +
+			'press "Save & Apply".')),
+		E('div', {}, rows),
 		E('div', { class: 'right' }, [
 			E('button', {
 				class: 'btn',
 				click: function() { ui.hideModal(); }
-			}, _('Ignore')),
+			}, _('Cancel')),
 			' ',
 			E('button', {
 				class: 'btn cbi-button cbi-button-action',
 				click: function() {
+					const chosen = boxes.filter(function(item) {
+						return item.box.checked;
+					}).map(function(item) {
+						return item.entry;
+					});
+
 					ui.hideModal();
 
-					return self.run_rpc(function() {
-						let added = 0;
+					if (!chosen.length) {
+						self.notify(null, E('p', {}, _('Nothing was added.')), 'info');
+						return;
+					}
 
-						unknown.forEach(function(entry) {
-							const url = 'http://' + host + ':' + entry.port;
+				const sids = stage_bookmarks(chosen);
 
-							const known = uci.sections('portal', 'link').some(function(section) {
-								return uci.get('portal', section['.name'], 'url') === url;
-							});
-
-							if (known)
-								return;
-
-							const sid = uci.add('portal', 'link');
-
-							uci.set('portal', sid, 'name', entry.svc || _('Service %d').format(entry.port));
-							uci.set('portal', sid, 'url', url);
-							uci.set('portal', sid, 'icon_url', '🔌');
-							uci.set('portal', sid, 'enabled', '0');
-							added++;
-						});
-
-						return uci.save().then(function() { return { added: added }; });
-					}, function(res) {
-						return _('Added %d disabled bookmark(s) - tick the ones you want and apply.')
-							.format((res && res.added) || 0);
-					}).then(function(res) {
-							if (res && res.added)
-								window.setTimeout(function() { window.location.reload(); }, 1500);
-						});
+				return Promise.resolve(typeof(on_add) === 'function'
+					? on_add(sids)
+					: null);
 				}
-			}, _('Add as disabled bookmarks'))
+			}, _('Add selected'))
 		])
 	]);
 }
@@ -439,18 +463,26 @@ return baseclass.extend(/** @lends LuCI.portal.common.prototype */ {
 	 *
 	 * It lives here rather than in either view because it is needed by both,
 	 * and a copy per page would drift - the scan in particular has a rule about
-	 * which ports may be added without asking, and two copies of that rule are
-	 * two chances to get it wrong. The caller decides where it goes; the Bookmarks
-	 * page puts it above the list, since the scan writes bookmarks.
+	 * which ports may be offered without hesitation, and two copies of that
+	 * rule are two chances to get it wrong. The caller decides where it goes;
+	 * the Bookmarks page puts it above the list, since the scan writes bookmarks.
 	 *
 	 * `status` is the panel returned by status_panel(). Nothing in the section
 	 * refreshes it at the moment - the Bookmarks page passes null and the
 	 * Bookmarks page is the only caller - but it stays a parameter because a
 	 * scan that republishes would want it, and status_panel() carries its own
 	 * refresh button for the general case.
+	 *
+	 * `on_add(sids)` is how the caller learns which rows to draw. The scan does
+	 * not touch the DOM: only the caller knows how a row of this table is built
+	 * (this module has no idea what a bookmark row looks like), and passing the
+	 * section ids back keeps the "which rows exist" decision in one place. When
+	 * it is omitted the scan still works - the sections are staged - but nothing
+	 * appears until the page is re-rendered, so the caller is expected to pass it.
 	 */
-	maintenance_section: function(m, status) {
+	maintenance_section: function(m, status, on_add) {
 		const s = m.section(form.TypedSection, 'portal', _('Maintenance'));
+		const self = this;
 
 		s.anonymous = true;
 		s.addremove = false;
@@ -459,42 +491,30 @@ return baseclass.extend(/** @lends LuCI.portal.common.prototype */ {
 		o.inputtitle = _('Scan local services & add (disabled)');
 		o.inputstyle = 'action';
 		o.onclick = function() {
-			return this.run_rpc(scan_services, function(result) {
-				const added = (result && result.added) || 0;
-				const unknown = (result && result.unknown) || [];
+			return this.run_rpc(scan_candidates).then(function(candidates) {
+				/*
+				 * run_rpc() resolves to null when the scan itself failed, and the
+				 * error banner is already up - opening an empty dialog on top of it
+				 * would only hide the reason.
+				 */
+				if (candidates == null)
+					return null;
 
-				if (added && !unknown.length)
-					return _('Added %d disabled bookmark(s) - tick the ones you want and apply.')
-						.format(added);
+				if (!candidates.length) {
+					self.notify(null, E('p', {},
+						_('No new local services found.')), 'info');
 
-				if (added && unknown.length)
-					return _('Added %d bookmark(s); %d port(s) were not recognised.')
-						.format(added, unknown.length);
-
-				if (!added && !unknown.length)
-					return _('No new local services found.');
-
-				return null;
-			}.bind(this)).then(function(result) {
-				const unknown = (result && result.unknown) || [];
+					return null;
+				}
 
 				/*
-				 * Unrecognised ports are not added and not forgotten: offer
-				 * them explicitly, so the decision stays with the user
-				 * instead of being made by a guess in either direction.
+				 * Nothing is written and nothing is redrawn until the dialog is
+				 * answered. The old flow staged every recognised service on the
+				 * spot and reloaded the page a second and a half later, which
+				 * destroyed the notification it had just raised and gave the user
+				 * no chance to look at what was about to be added.
 				 */
-				if (unknown.length)
-					return confirm_unknown(self, result);
-
-				/*
-				 * The staged bookmarks only become visible on the Bookmarks
-				 * page, so redraw it - but give the notification a moment
-				 * first, a reload would wipe it instantly.
-				 */
-				if (result && result.added)
-					window.setTimeout(function() { window.location.reload(); }, 1500);
-
-				return result;
+				return confirm_scan(self, candidates, on_add);
 			});
 		}.bind(this);
 
@@ -502,5 +522,8 @@ return baseclass.extend(/** @lends LuCI.portal.common.prototype */ {
 	},
 
 	callStatus: callStatus,
-	callScan: callScan
+	callScan: callScan,
+
+	scan_candidates: scan_candidates,
+	stage_bookmarks: stage_bookmarks
 });
