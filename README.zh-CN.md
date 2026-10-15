@@ -55,10 +55,10 @@
 
 ```sh
 # OpenWrt 25.12 及更新（apk）
-apk add --allow-untrusted ./luci-app-portal-3.0.1-r1.apk
+apk add --allow-untrusted ./luci-app-portal-3.0.1-r2.apk
 
 # OpenWrt 24.10 及更早（opkg），需用对应 SDK 构建
-opkg install ./luci-app-portal_3.0.1-r1_all.ipk
+opkg install ./luci-app-portal_3.0.1-r2_all.ipk
 ```
 
 然后进 LuCI 的**服务 → Portal**，或直接访问 `http://<路由器>/portal/`。
@@ -139,6 +139,8 @@ config portal
 	option bg_veil           '78'        # 0-100：背景图被压暗的程度
 	option bg_blur           '0'         # 0-100：磨砂模糊，100 等于最大值 20 px
 	option card_transparency '45'        # 0-100：100 表示卡片完全透出背景
+	option search_enabled    '0'         # '1' 在门户页上显示搜索框
+	option search_engine     'https://www.google.com/search?q=%s'  # 结果页 URL，%s 为关键字
 
 config link
 	option name     'AdGuard Home'
@@ -158,9 +160,14 @@ config link
 `portal.css` 消费的 CSS 自定义属性，所以门户页自己不必读 uci。删掉其中任何一项都会
 在后台回落到同一个值 —— 这正是「这些选项存在之前写下的配置」外观不变的原因。
 
+门户页可以带一个搜索框：`search_enabled` 打开它，缺省（没有这一项）视为关闭 ——
+在它存在之前写下的配置照旧不显示搜索框。`search_engine` 是引擎的结果页 URL，用
+`%s` 表示关键字；预设引擎列在设置页上。在设置页选「自定义」时，页面改用
+`search_url` 里的模板，该选项只在那时才会被写入。引擎清单只存在于 LuCI 表单：
+`links.json` 只带解析后的模板，门户页本身不持有任何引擎知识。
+
 `/etc/config/portal` 一有变化，`links.json` 会自动重新生成（LuCI 点「保存并应用」，
-或 `uci commit` 加 `/etc/init.d/portal reload`）。页面上的**立即重新生成 links.json**
-按钮可强制刷新。
+或 `uci commit` 加 `/etc/init.d/portal reload`）。
 
 ## 排查
 
@@ -176,7 +183,7 @@ ubus call luci.portal status
 | `published: false` | 页面不在磁盘上：服务还没跑过，或开关是关的。`sh /etc/init.d/portal start` 会发布它 |
 | `server_listening: false` | 主 uhttpd 没有在它被配置的任何一个端口上监听 —— 检查 `/etc/config/uhttpd` |
 | 面板说「可访问」但 `/portal/` 返回 404 | 主实例的 `option home` 不是 `/www`，它在提供另一棵树 |
-| 页面能开但没有书签 | `links.json` 缺失或为空，点「立即重新生成 links.json」 |
+| 页面能开但没有书签 | `links.json` 缺失或为空：点「保存并应用」重新烘焙，或 `ubus call luci.portal generate` |
 | 浏览器控制台报 *Access denied* | 有 ubus 方法没写进 ACL —— 跑一下 `sh scripts/check.sh` |
 
 页面由主 uhttpd 提供，因此继承该实例的监听地址与防火墙规则 —— 没有单独的端口需要

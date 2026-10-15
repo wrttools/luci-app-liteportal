@@ -57,10 +57,10 @@ Bookmarks, icons and the background are stored in `uci` and baked into a static
 
 ```sh
 # OpenWrt 25.12 and newer (apk)
-apk add --allow-untrusted ./luci-app-portal-3.0.1-r1.apk
+apk add --allow-untrusted ./luci-app-portal-3.0.1-r2.apk
 
 # OpenWrt 24.10 and older (opkg), built from the matching SDK
-opkg install ./luci-app-portal_3.0.1-r1_all.ipk
+opkg install ./luci-app-portal_3.0.1-r2_all.ipk
 ```
 
 Then open **Services → Portal** in LuCI, or go straight to
@@ -148,6 +148,8 @@ config portal
 	option bg_veil           '78'        # 0-100: how strongly a background image is dimmed
 	option bg_blur           '0'         # 0-100: frosted blur, 100 = the 20 px maximum
 	option card_transparency '45'        # 0-100: 100 = bookmark cards fully see-through
+	option search_enabled    '0'         # '1' shows a search box on the portal page
+	option search_engine     'https://www.google.com/search?q=%s'  # results URL, %s = keyword
 
 config link
 	option name     'AdGuard Home'
@@ -171,9 +173,17 @@ the CSS custom properties `portal.css` consumes, so the served page never has to
 read uci itself. Deleting one of them falls back to the same value in the
 backend, which is how a configuration written before they existed keeps its look.
 
+The portal page can carry a search box. `search_enabled` switches it on, and an
+absent value means off — a configuration written before the option existed keeps
+rendering without one. `search_engine` is the engine's results URL with `%s`
+standing for the keyword; the presets are listed on the settings page. Choosing
+*Custom* there sends the page to the template in `search_url` instead, an option
+the form writes only in that case. The engine list lives in the LuCI form and
+nowhere else: `links.json` carries just the resolved template, so the portal
+page holds no engine knowledge of its own.
+
 It is regenerated automatically whenever `/etc/config/portal` changes (LuCI
-*Save & Apply*, or `uci commit` plus `/etc/init.d/portal reload`). The
-**Regenerate links.json now** button forces it.
+*Save & Apply*, or `uci commit` plus `/etc/init.d/portal reload`).
 
 ## Troubleshooting
 
@@ -190,7 +200,7 @@ ubus call luci.portal status
 | `published: false` | The page is not on disk: the service has not run yet, or the switch is off. `sh /etc/init.d/portal start` publishes it |
 | `server_listening: false` | The main uhttpd is not listening on any port it was configured with — check `/etc/config/uhttpd` |
 | `/portal/` answers 404 although the panel says *reachable* | The main instance's `option home` is not `/www`, so it is serving a different tree |
-| Page loads, but no bookmarks | `links.json` missing or empty — press **Regenerate links.json now** |
+| Page loads, but no bookmarks | `links.json` missing or empty — press *Save & Apply* to re-bake it, or run `ubus call luci.portal generate` |
 | *Access denied* in the browser console | A ubus method is missing from the ACL — run `sh scripts/check.sh` |
 
 The page is served by the main uhttpd, so it inherits that instance's listen

@@ -31,6 +31,54 @@ function apply_appearance(d) {
     String((100 - clamp(d.card_transparency, 0, 100, 45)) / 100));
 }
 
+/*
+ * The search box, built only when links.json carries a template for it.
+ *
+ * The page is static, so a search is an ordinary GET form submitted straight
+ * to the engine - there is nothing to ask the backend, and no engine knowledge
+ * here beyond the template it was handed. Results open in a new tab: the portal
+ * stays where it is, which is what a navigation page is for.
+ *
+ * A missing or null `search` (the switch off, or a template that failed
+ * validation in the backend) leaves no trace in the DOM, so a portal without
+ * the feature renders exactly as it did before.
+ */
+function setup_search(cfg) {
+  if (!cfg || !cfg.template)
+    return;
+
+  var template = cfg.template;
+
+  var form = document.createElement('form');
+  form.className = 'search';
+  form.setAttribute('autocomplete', 'off');
+
+  var input = document.createElement('input');
+  input.type = 'text';
+  input.name = 'q';
+  input.placeholder = 'Search…';
+  form.appendChild(input);
+
+  document.querySelector('.wrap').insertBefore(form, document.getElementById('grid'));
+
+  form.addEventListener('submit', function (ev) {
+    ev.preventDefault();
+
+    var q = input.value.trim();
+
+    if (!q) {
+      input.focus();
+      return;
+    }
+
+    /* The first %s is the keyword; whatever follows it (a fixed &lang=zh,
+     * say) stays as configured. encodeURIComponent keeps a keyword with
+     * spaces or & from breaking out of the query. */
+    window.open(template.replace('%s', encodeURIComponent(q)), '_blank', 'noopener');
+    input.value = '';
+  });
+}
+
 fetch('links.json')
   .then(function (r) {
     /*
@@ -46,6 +94,7 @@ fetch('links.json')
   })
   .then(function (d) {
     apply_appearance(d);
+    setup_search(d.search);
 
     if (d.title) {
       document.getElementById('title').textContent = d.title;

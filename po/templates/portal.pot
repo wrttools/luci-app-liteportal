@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: luci-app-portal\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-14 22:09+0800\n"
+"POT-Creation-Date: 2026-10-16 07:34+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,37 +18,37 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 
 #: htdocs/luci-static/resources/portal/common.js:53
-#: htdocs/luci-static/resources/portal/common.js:273
+#: htdocs/luci-static/resources/portal/common.js:272
 msgid "Error"
 msgstr ""
 
 #: htdocs/luci-static/resources/portal/common.js:119
-#: htdocs/luci-static/resources/portal/common.js:159
+#: htdocs/luci-static/resources/portal/common.js:162
 #, javascript-format
 msgid "Service %d"
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:162
+#: htdocs/luci-static/resources/portal/common.js:165
 msgid ""
 "port not classified - a port number does not say which protocol is spoken on "
 "it"
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:166
+#: htdocs/luci-static/resources/portal/common.js:169
 msgid "Local services found"
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:167
+#: htdocs/luci-static/resources/portal/common.js:170
 msgid ""
 "These local services are not bookmarked yet. The ones you tick are added as "
 "disabled bookmarks, so nothing appears on the portal page until you enable "
 "them and press \"Save & Apply\"."
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:175
-#: htdocs/luci-static/resources/view/portal/bookmarks.js:110
-#: htdocs/luci-static/resources/view/portal/assets.js:380
-#: htdocs/luci-static/resources/view/portal/assets.js:417
+#: htdocs/luci-static/resources/portal/common.js:178
+#: htdocs/luci-static/resources/view/portal/assets.js:387
+#: htdocs/luci-static/resources/view/portal/assets.js:424
+#: htdocs/luci-static/resources/view/portal/bookmarks.js:198
 msgid "Cancel"
 msgstr ""
 
@@ -60,106 +60,309 @@ msgstr ""
 msgid "Add selected"
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:274
+#: htdocs/luci-static/resources/portal/common.js:273
 #, javascript-format
 msgid "Operation failed: %s"
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:353
+#: htdocs/luci-static/resources/portal/common.js:352
 msgid "The page files are not in place. Press \"Save & Apply\" to publish it."
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:356
+#: htdocs/luci-static/resources/portal/common.js:355
 msgid ""
 "The main web server (uhttpd) is not listening on any of its ports, so "
 "nothing can serve the page."
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:358
+#: htdocs/luci-static/resources/portal/common.js:357
 msgid "The page cannot be reached."
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:372
+#: htdocs/luci-static/resources/portal/common.js:371
 msgid "Service state unknown."
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:386
+#: htdocs/luci-static/resources/portal/common.js:385
 msgid "Reachable"
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:388
-msgid "Yes"
-msgstr ""
-
-#: htdocs/luci-static/resources/portal/common.js:388
+#: htdocs/luci-static/resources/portal/common.js:387
 msgid "No"
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:391
+#: htdocs/luci-static/resources/portal/common.js:387
+msgid "Yes"
+msgstr ""
+
+#: htdocs/luci-static/resources/portal/common.js:390
 msgid "Disabled"
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:392
+#: htdocs/luci-static/resources/portal/common.js:391
 msgid "Address"
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:394
-#: htdocs/luci-static/resources/view/portal/bookmarks.js:441
-#: htdocs/luci-static/resources/view/portal/bookmarks.js:466
+#: htdocs/luci-static/resources/portal/common.js:393
+#: htdocs/luci-static/resources/view/portal/bookmarks.js:578
+#: htdocs/luci-static/resources/view/portal/bookmarks.js:603
 msgid "Bookmarks"
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:395
+#: htdocs/luci-static/resources/portal/common.js:394
 #, javascript-format
 msgid "%d baked into links.json"
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:396
+#: htdocs/luci-static/resources/portal/common.js:395
 msgid "links.json has not been generated yet"
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:402
+#: htdocs/luci-static/resources/portal/common.js:401
 msgid ""
 "The portal is switched off. Turn on \"Enable portal\" above, then press "
 "\"Save & Apply\" to publish it."
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:415
-#: htdocs/luci-static/resources/portal/common.js:422
+#: htdocs/luci-static/resources/portal/common.js:414
+#: htdocs/luci-static/resources/portal/common.js:421
 msgid "Querying…"
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:428
+#: htdocs/luci-static/resources/portal/common.js:427
 #, javascript-format
 msgid "Status query failed: %s"
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:433
+#: htdocs/luci-static/resources/portal/common.js:432
 msgid "Service status"
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:442
+#: htdocs/luci-static/resources/portal/common.js:441
 msgid "Refresh"
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:445
+#: htdocs/luci-static/resources/portal/common.js:444
 msgid "Re-reads the published state, it does not change the configuration."
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:485
+#: htdocs/luci-static/resources/portal/common.js:484
 msgid "Maintenance"
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:491
+#: htdocs/luci-static/resources/portal/common.js:490
 msgid "Discovery"
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:492
+#: htdocs/luci-static/resources/portal/common.js:491
 msgid "Scan local services & add (disabled)"
 msgstr ""
 
-#: htdocs/luci-static/resources/portal/common.js:506
+#: htdocs/luci-static/resources/portal/common.js:505
 msgid "No new local services found."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/assets.js:152
+msgid "open"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/assets.js:157
+#: htdocs/luci-static/resources/view/portal/assets.js:188
+msgid "not an image"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/assets.js:226
+#: htdocs/luci-static/resources/view/portal/assets.js:560
+msgid "Icons"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/assets.js:227
+#: htdocs/luci-static/resources/view/portal/assets.js:561
+msgid "Backgrounds"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/assets.js:307
+#, javascript-format
+msgid "Image is larger than 2 MiB (%s)."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/assets.js:363
+msgid "Upload"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/assets.js:365
+msgid "Up to 2 MiB per file."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/assets.js:380
+#: htdocs/luci-static/resources/view/portal/assets.js:408
+#: htdocs/luci-static/resources/view/portal/assets.js:499
+msgid "Rename"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/assets.js:381
+msgid "Choose a new name. Letters, digits, dot, dash and underscore only."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/assets.js:396
+msgid "Invalid file name."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/assets.js:403
+#, javascript-format
+msgid "Renamed to %s."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/assets.js:416
+#: htdocs/luci-static/resources/view/portal/assets.js:438
+#: htdocs/luci-static/resources/view/portal/assets.js:504
+#: htdocs/luci-static/resources/view/portal/bookmarks.js:206
+msgid "Delete"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/assets.js:417
+#, javascript-format
+msgid "Delete %s?"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/assets.js:419
+msgid "Bookmarks using this file and the current background will be cleared."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/assets.js:462
+#, javascript-format
+msgid ""
+"Background set to %s. Press \"Save & Apply\" below to make it take effect."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/assets.js:486
+msgid "(current)"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/assets.js:494
+msgid "Set as background"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/assets.js:517
+#: htdocs/luci-static/resources/view/portal/bookmarks.js:626
+msgid "Name"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/assets.js:518
+msgid "Size"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/assets.js:519
+msgid "Modified"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/assets.js:520
+msgid "Actions"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/assets.js:523
+msgid "No files yet."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/assets.js:565
+msgid "Assets"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/assets.js:567
+msgid ""
+"Icons and background images offered to the portal. Files are served from the "
+"portal page directory by the main web server, picked for a bookmark on the "
+"Bookmarks page, or set as the page background here."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/bookmarks.js:255
+#: htdocs/luci-static/resources/view/portal/bookmarks.js:607
+msgid "Enabled"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/bookmarks.js:259
+msgid "Select all"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/bookmarks.js:287
+#, javascript-format
+msgid "Enabled %d bookmark(s). Press \"Save & Apply\" to keep the change."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/bookmarks.js:288
+#, javascript-format
+msgid "Disabled %d bookmark(s). Press \"Save & Apply\" to keep the change."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/bookmarks.js:414
+msgid "More…"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/bookmarks.js:452
+msgid "Save this bookmark"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/bookmarks.js:466
+msgid "Saved"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/bookmarks.js:469
+msgid "Save"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/bookmarks.js:514
+msgid "There is no disabled bookmark to delete."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/bookmarks.js:515
+msgid "There is no bookmark to delete."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/bookmarks.js:521
+#, javascript-format
+msgid ""
+"This removes %d disabled bookmark(s) from the configuration. It cannot be "
+"undone."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/bookmarks.js:522
+#, javascript-format
+msgid ""
+"This removes all %d bookmark(s) from the configuration. It cannot be undone."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/bookmarks.js:548
+msgid "Delete disabled bookmarks"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/bookmarks.js:549
+msgid "Clear all bookmarks"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/bookmarks.js:579
+msgid ""
+"The tiles shown on the portal page. Only enabled bookmarks are baked into "
+"links.json."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/bookmarks.js:629
+msgid "URL"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/bookmarks.js:633
+msgid "Icon"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/bookmarks.js:634
+msgid "An emoji or an absolute image URL."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/bookmarks.js:642
+msgid "Icon file"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/bookmarks.js:643
+msgid "An image from the Assets page. Takes precedence over the icon above."
 msgstr ""
 
 #: htdocs/luci-static/resources/view/portal/general.js:20
@@ -242,201 +445,53 @@ msgid ""
 "the background shine through completely; the text stays readable either way."
 msgstr ""
 
-#: htdocs/luci-static/resources/view/portal/bookmarks.js:118
-#: htdocs/luci-static/resources/view/portal/assets.js:409
-#: htdocs/luci-static/resources/view/portal/assets.js:431
-#: htdocs/luci-static/resources/view/portal/assets.js:497
-msgid "Delete"
+#: htdocs/luci-static/resources/view/portal/general.js:121
+msgid "Search box"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/portal/bookmarks.js:167
-#: htdocs/luci-static/resources/view/portal/bookmarks.js:470
-msgid "Enabled"
+#: htdocs/luci-static/resources/view/portal/general.js:122
+msgid "Show a search box on the portal page."
 msgstr ""
 
-#: htdocs/luci-static/resources/view/portal/bookmarks.js:171
-msgid "Select all"
+#: htdocs/luci-static/resources/view/portal/general.js:134
+msgid "Search engine"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/portal/bookmarks.js:199
+#: htdocs/luci-static/resources/view/portal/general.js:135
+msgid "Google"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/general.js:136
+msgid "Bing"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/general.js:137
+msgid "DuckDuckGo"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/general.js:138
+msgid "Baidu"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/general.js:139
+msgid "Custom…"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/general.js:149
+msgid "Custom search URL"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/portal/general.js:150
 #, javascript-format
-msgid "Enabled %d bookmark(s). Press \"Save & Apply\" to keep the change."
+msgid "The results URL of your engine, with %s where the keyword goes."
 msgstr ""
 
-#: htdocs/luci-static/resources/view/portal/bookmarks.js:200
-#, javascript-format
-msgid "Disabled %d bookmark(s). Press \"Save & Apply\" to keep the change."
+#: htdocs/luci-static/resources/view/portal/general.js:158
+msgid "A custom search URL is required while \"Custom\" is the chosen engine."
 msgstr ""
 
-#: htdocs/luci-static/resources/view/portal/bookmarks.js:335
-msgid "Save this bookmark"
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/bookmarks.js:349
-msgid "Saved"
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/bookmarks.js:352
-msgid "Save"
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/bookmarks.js:382
-msgid "There is no disabled bookmark to delete."
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/bookmarks.js:383
-msgid "There is no bookmark to delete."
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/bookmarks.js:389
-#, javascript-format
-msgid ""
-"This removes %d disabled bookmark(s) from the configuration. It cannot be "
-"undone."
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/bookmarks.js:390
+#: htdocs/luci-static/resources/view/portal/general.js:161
 #, javascript-format
 msgid ""
-"This removes all %d bookmark(s) from the configuration. It cannot be undone."
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/bookmarks.js:411
-msgid "Delete disabled bookmarks"
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/bookmarks.js:412
-msgid "Clear all bookmarks"
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/bookmarks.js:442
-msgid ""
-"The tiles shown on the portal page. Only enabled bookmarks are baked into "
-"links.json."
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/bookmarks.js:489
-#: htdocs/luci-static/resources/view/portal/assets.js:510
-msgid "Name"
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/bookmarks.js:492
-msgid "URL"
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/bookmarks.js:496
-msgid "Icon"
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/bookmarks.js:497
-msgid "An emoji or an absolute image URL."
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/bookmarks.js:505
-msgid "Icon file"
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/bookmarks.js:506
-msgid "An image from the Assets page. Takes precedence over the icon above."
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/assets.js:152
-msgid "open"
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/assets.js:157
-#: htdocs/luci-static/resources/view/portal/assets.js:188
-msgid "not an image"
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/assets.js:226
-#: htdocs/luci-static/resources/view/portal/assets.js:553
-msgid "Icons"
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/assets.js:227
-#: htdocs/luci-static/resources/view/portal/assets.js:554
-msgid "Backgrounds"
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/assets.js:307
-#, javascript-format
-msgid "Image is larger than 2 MiB (%s)."
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/assets.js:363
-msgid "Upload"
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/assets.js:358
-msgid "Up to 2 MiB per file."
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/assets.js:373
-#: htdocs/luci-static/resources/view/portal/assets.js:401
-#: htdocs/luci-static/resources/view/portal/assets.js:492
-msgid "Rename"
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/assets.js:374
-msgid "Choose a new name. Letters, digits, dot, dash and underscore only."
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/assets.js:389
-msgid "Invalid file name."
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/assets.js:396
-#, javascript-format
-msgid "Renamed to %s."
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/assets.js:410
-#, javascript-format
-msgid "Delete %s?"
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/assets.js:412
-msgid "Bookmarks using this file and the current background will be cleared."
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/assets.js:455
-#, javascript-format
-msgid ""
-"Background set to %s. Press \"Save & Apply\" below to make it take effect."
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/assets.js:479
-msgid "(current)"
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/assets.js:487
-msgid "Set as background"
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/assets.js:511
-msgid "Size"
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/assets.js:512
-msgid "Modified"
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/assets.js:513
-msgid "Actions"
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/assets.js:516
-msgid "No files yet."
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/assets.js:558
-msgid "Assets"
-msgstr ""
-
-#: htdocs/luci-static/resources/view/portal/assets.js:560
-msgid ""
-"Icons and background images offered to the portal. Files are served from the "
-"portal page directory by the main web server, picked for a bookmark on the "
-"Bookmarks page, or set as the page background here."
+"Must be an http(s) URL containing %s as the placeholder for the keyword."
 msgstr ""
