@@ -57,10 +57,10 @@ Bookmarks, icons and the background are stored in `uci` and baked into a static
 
 ```sh
 # OpenWrt 25.12 and newer (apk)
-apk add --allow-untrusted ./luci-app-portal-3.0.1-r2.apk
+apk add --allow-untrusted ./luci-app-portal-3.0.1-r3.apk
 
 # OpenWrt 24.10 and older (opkg), built from the matching SDK
-opkg install ./luci-app-portal_3.0.1-r2_all.ipk
+opkg install ./luci-app-portal_3.0.1-r3_all.ipk
 ```
 
 Then open **Services → Portal** in LuCI, or go straight to
@@ -181,6 +181,12 @@ standing for the keyword; the presets are listed on the settings page. Choosing
 the form writes only in that case. The engine list lives in the LuCI form and
 nowhere else: `links.json` carries just the resolved template, so the portal
 page holds no engine knowledge of its own.
+
+When the box is on it stays hidden — the page is a grid of links, and a
+permanent input would compete with them. Press the space bar anywhere on the
+page to bring it up (it focuses itself); press space again while it is empty,
+or Escape, to put it away. Enter opens the results in a new tab and clears the
+box. A space typed inside a non-empty box is just a space.
 
 It is regenerated automatically whenever `/etc/config/portal` changes (LuCI
 *Save & Apply*, or `uci commit` plus `/etc/init.d/portal reload`).

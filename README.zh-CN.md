@@ -55,10 +55,10 @@
 
 ```sh
 # OpenWrt 25.12 及更新（apk）
-apk add --allow-untrusted ./luci-app-portal-3.0.1-r2.apk
+apk add --allow-untrusted ./luci-app-portal-3.0.1-r3.apk
 
 # OpenWrt 24.10 及更早（opkg），需用对应 SDK 构建
-opkg install ./luci-app-portal_3.0.1-r2_all.ipk
+opkg install ./luci-app-portal_3.0.1-r3_all.ipk
 ```
 
 然后进 LuCI 的**服务 → Portal**，或直接访问 `http://<路由器>/portal/`。
@@ -165,6 +165,11 @@ config link
 `%s` 表示关键字；预设引擎列在设置页上。在设置页选「自定义」时，页面改用
 `search_url` 里的模板，该选项只在那时才会被写入。引擎清单只存在于 LuCI 表单：
 `links.json` 只带解析后的模板，门户页本身不持有任何引擎知识。
+
+搜索框开启后默认隐藏 —— 门户页是一页链接，常驻输入框会和链接抢注意力。在页面
+任意位置按空格唤出（自动聚焦）；输入框为空时再按空格或按 `Escape` 收起。回车提交
+后结果页在新标签页打开，门户页同时清空并隐藏搜索框。输入框有内容时，空格照常
+输入空格。
 
 `/etc/config/portal` 一有变化，`links.json` 会自动重新生成（LuCI 点「保存并应用」，
 或 `uci commit` 加 `/etc/init.d/portal reload`）。
