@@ -5,6 +5,29 @@
 
 ## [Unreleased]
 
+### Added
+
+- **门户页搜索框（默认关闭）**（ROADMAP #16）：设置页「常规」区新增「搜索框」开关与
+  搜索引擎选择，开启后门户页在标题与书签网格之间显示一个搜索框，关键字直接提交到
+  引擎结果页（新标签页打开，门户页留在原处）。引擎清单只存在于设置页 —— Google /
+  Bing / DuckDuckGo / 百度 / 自定义，uci 的 `search_engine` 存的是结果页 URL 模板
+  （`%s` 为关键字占位符），`links.json` 只带解析后的模板，门户前端不持有任何引擎
+  知识。选「自定义」时模板写在 `search_url`，前后端各一道 `/^https?:\/\/[^ \t]+%s/`
+  校验。`search_enabled` 缺省视为关，升级用户外观不变。无新 ubus 方法，ACL 不动。
+  决策与备选方案见 [docs/adr/0006](docs/adr/0006-search-box.md)。
+
+### Changed
+
+- **发版 tag / GitHub Release 改用纯语义化版本号**：对外版本不再带 `-rN` 后缀。
+  自下一版起，tag 与 Release 为 `v<PKG_VERSION>`（如 `v3.0.2`）；仅升 `PKG_RELEASE`、
+  不改 `PKG_VERSION` 的纯打包重发用 semver 构建元数据 `v<PKG_VERSION>+<PKG_RELEASE>`
+  （如 `v3.0.1+2`），不新建 CHANGELOG 段落。已发布的 `v3.0.1-r1` 等保留不变。
+  决策与取舍见 [docs/adr/0005](docs/adr/0005-semver-release-tags.md)。
+
+- **README 两文移除「立即重新生成 links.json」按钮的残留描述**：该按钮已随
+  `3.0.0-r4` 删除（ROADMAP #10 / #20），保存并应用即会重新烘焙；排查表相应改为
+  「保存并应用」或 `ubus call luci.portal generate`。
+
 ## [3.0.1-r1] - 2026-10-15
 
 ### Added

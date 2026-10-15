@@ -495,6 +495,32 @@ function percent(value, fallback) {
 }
 
 /*
+ * The search engine chosen on the settings page, as a URL template.
+ *
+ * The engine list itself lives in the LuCI form, not here: the form is where
+ * the user picks one, and a second copy of the list in the backend would be a
+ * second chance to get it wrong. What is stored is either the template of a
+ * preset (the form writes it verbatim) or the literal 'custom' plus a hand
+ * written template in search_url.
+ *
+ * A missing or malformed template yields null, and generate() then ships the
+ * page without a search box rather than sending the visitor's keywords to an
+ * engine nobody chose. Form validation catches a bad template on save; this is
+ * the fallback for a hand edited config, and it is the same expression the
+ * form uses so the two gates cannot disagree.
+ */
+function search_template(general) {
+	const picked = general.search_engine ?? '';
+
+	if (picked == '')
+		return null;
+
+	const tpl = trim((picked == 'custom') ? (general.search_url ?? '') : picked);
+
+	return (match(tpl, /^https?:\/\/[^ \t]+%s/) != null) ? tpl : null;
+}
+
+/*
  * Bake WWW/links.json from the uci configuration. The served page is static, so
  * the bookmarks are turned into a plain JSON document that the frontend fetches
  * from the same sub-path it was served from.
@@ -505,6 +531,14 @@ function generate() {
 	uci.load(CONFIG);
 
 	const general = first_section(uci, 'portal');
+
+	/*
+	 * Search is baked only when it is usable - the switch on and a template
+	 * that validates - and null otherwise. The frontend builds the form from
+	 * the template alone, so the engine list stays in one place (the LuCI
+	 * form) and the page holds no engine knowledge of its own.
+	 */
+	const search = ((general.search_enabled ?? '0') != '0') ? search_template(general) : null;
 
 	const data = {
 		title: general.title ?? 'Portal',
@@ -519,6 +553,7 @@ function generate() {
 		bg_veil: percent(general.bg_veil, 78),
 		bg_blur: percent(general.bg_blur, 0),
 		card_transparency: percent(general.card_transparency, 45),
+		search: (search != null) ? { template: search } : null,
 		links: collect_links(uci)
 	};
 

@@ -17,3 +17,4 @@
 | [0002](0002-javascript-views-over-lua.md) | 用 JavaScript 视图 + ucode 取代 Lua 实现 | 已接受 |
 | [0003](0003-no-test-framework-syntax-level-gate.md) | 不引入测试框架，改用语法级门禁 | 已接受 |
 | [0004](0004-serve-portal-from-main-uhttpd.md) | 门户改由主 uhttpd 的子路径提供 | 已接受 |
+| [0006](0006-search-box.md) | 门户页搜索框：引擎清单在 LuCI 表单，`links.json` 只传模板 | 已接受 |

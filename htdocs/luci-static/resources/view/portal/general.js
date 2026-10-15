@@ -109,6 +109,60 @@ return view.extend({
 			o.default = 45;
 			o.calcunits = '%';
 
+			/*
+			 * Search box on the portal page. Off by default, and absent means off
+			 * as well: a configuration written before this option existed keeps
+			 * rendering without a box, which is the same rule the appearance
+			 * sliders follow - their fallbacks are what portal.css used to
+			 * hard-code. The box itself submits straight to the engine from the
+			 * browser, so there is no backend method to grant and the ACL is
+			 * untouched.
+			 */
+			o = s.option(form.Flag, 'search_enabled', _('Search box'),
+				_('Show a search box on the portal page.'));
+			o.default = '0';
+			o.rmempty = false;
+
+			/*
+			 * The stored value is the engine's results URL with %s where the
+			 * keyword goes - not a friendly key. That keeps the engine list in
+			 * this file and nowhere else: the backend resolves and validates the
+			 * template, and a second copy of the list in portal.uc would be a
+			 * second chance to get it wrong. 'custom' hands the decision to the
+			 * user through search_url below.
+			 */
+			o = s.option(form.ListValue, 'search_engine', _('Search engine'));
+			o.value('https://www.google.com/search?q=%s', _('Google'));
+			o.value('https://www.bing.com/search?q=%s', _('Bing'));
+			o.value('https://duckduckgo.com/?q=%s', _('DuckDuckGo'));
+			o.value('https://www.baidu.com/s?wd=%s', _('Baidu'));
+			o.value('custom', _('Custom…'));
+			o.default = 'https://www.google.com/search?q=%s';
+			o.depends('search_enabled', '1');
+
+			/*
+			 * Only reachable with 'custom' picked above. The template is checked
+			 * here and once more in the backend - the same two-gate rule the
+			 * upload limits follow, because a hand edited /etc/config/portal
+			 * never went through this form.
+			 */
+			o = s.option(form.Value, 'search_url', _('Custom search URL'),
+				_('The results URL of your engine, with %s where the keyword goes.'));
+			o.placeholder = 'https://example.com/search?q=%s';
+			o.depends('search_engine', 'custom');
+			o.depends('search_enabled', '1');
+			o.validate = function(section_id, value) {
+				const template = (value == null) ? '' : String(value).trim();
+
+				if (template == '')
+					return _('A custom search URL is required while "Custom" is the chosen engine.');
+
+				if (!/^https?:\/\/[^ \t]+%s/.test(template))
+					return _('Must be an http(s) URL containing %s as the placeholder for the keyword.');
+
+				return true;
+			};
+
 			return m.render().then(function(mapNode) {
 				/* The panel starts out empty, fill it once the map is built. */
 				return status.refresh().then(function() {

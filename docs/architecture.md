@@ -47,6 +47,11 @@ init.d/portal（发布 / 撤下）──►  /www/portal/（静态文件）◄�
   `portal/common.js`。
 - **门户前端（`www/portal.js`）不依赖 LuCI。** 它是给访客看的裸页面，只能读
   `links.json`。
+- **`links.json` 是门户前端的唯一输入，由 `generate()` 从 uci 烘焙**：标题、背景、
+  三个外观百分比、书签列表，以及可选的 `search`（`{ template }` 或 `null`）。
+  `search` 只在开关打开且模板合法时出现，前端据此决定是否渲染搜索框；引擎清单在
+  LuCI 表单里，`links.json` 只传解析后的模板（见
+  [adr/0006](adr/0006-search-box.md)）。
 
 ## 3. ubus 契约
 

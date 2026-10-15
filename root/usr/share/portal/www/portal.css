@@ -111,3 +111,32 @@ h1 { font-weight: 600; letter-spacing: .5px; margin: 0 0 4px; text-shadow: 0 1px
   word-break: break-word;
   text-shadow: 0 1px 2px rgba(0, 0, 0, .5);
 }
+/*
+ * The search box, between the heading and the grid. It is created by portal.js
+ * only when links.json carries a template, so a portal without the feature has
+ * no such element at all. The surface borrows the card recipe (translucent dark
+ * plus frosted glass) so it stays legible over any background image.
+ */
+.search {
+  display: flex;
+  margin: 20px auto 0;
+  max-width: 460px;
+}
+.search input {
+  width: 100%;
+  padding: 12px 18px;
+  font-family: inherit;
+  font-size: 15px;
+  color: #e6e6e6;
+  background: rgba(16, 19, 25, var(--card-alpha, .55));
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 999px;
+  outline: none;
+  backdrop-filter: blur(10px);
+}
+.search input::placeholder {
+  color: rgba(230, 230, 230, .5);
+}
+.search input:focus {
+  border-color: rgba(255, 255, 255, .4);
+}
