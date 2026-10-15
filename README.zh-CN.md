@@ -36,7 +36,7 @@
 |---|---|
 | 启用开关 | 发布或撤下门户页面；上传的图标与背景图在两种状态下都保留 |
 | 不额外起进程 | 由路由器已在运行的 `uhttpd` 在 `/portal/` 下提供，无需启动、守护或额外放行端口 |
-| 书签 | 增删与启用/禁用；图标支持 emoji、远程 URL 或素材库里的图片 |
+| 书签 | 增删与启用/禁用；图标支持 emoji、远程 URL 或素材库里的图片（用素材库图片时行内显示缩略图） |
 | 素材库 | 上传（单个 ≤ 2 MiB）、预览、重命名、列出与删除图标/背景图，并可直接设为页面背景 |
 | 外观 | 页面标题、CSS 背景色或背景图，另有背景压暗、磨砂模糊、书签卡片透明度三个 0–100 滑块 |
 | Discovery | 读取 `/proc/net/tcp[6]`，把已知的 Web 服务加成**禁用**书签，其余端口交给你决定 |
@@ -55,10 +55,10 @@
 
 ```sh
 # OpenWrt 25.12 及更新（apk）
-apk add --allow-untrusted ./luci-app-portal-3.0.0-r4.apk
+apk add --allow-untrusted ./luci-app-portal-3.0.0-r8.apk
 
 # OpenWrt 24.10 及更早（opkg），需用对应 SDK 构建
-opkg install ./luci-app-portal_3.0.0-r4_all.ipk
+opkg install ./luci-app-portal_3.0.0-r8_all.ipk
 ```
 
 然后进 LuCI 的**服务 → Portal**，或直接访问 `http://<路由器>/portal/`。

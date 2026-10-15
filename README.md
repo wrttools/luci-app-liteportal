@@ -38,7 +38,7 @@ Bookmarks, icons and the background are stored in `uci` and baked into a static
 |---|---|
 | On/off switch | Publish the page or take it off the web server; the uploaded icons and backgrounds survive either way |
 | No second daemon | Served by the `uhttpd` the router already runs, under `/portal/` — nothing extra to start, supervise or open in the firewall |
-| Bookmarks | Add, enable/disable and delete; emoji, remote URL or an image from the asset library |
+| Bookmarks | Add, enable/disable and delete; emoji, remote URL or an image from the asset library (a thumbnail is shown in the row when an asset image is used) |
 | Asset library | Upload (2 MiB per file), preview, rename, list and delete icons and background images, and pick the page background |
 | Appearance | Page title, CSS background colour or a background image, plus 0-100 sliders for background dimming, frosted blur and bookmark-card transparency |
 | Discovery | Scans `/proc/net/tcp[6]` for locally reachable listening services, adds the known web ones as *disabled* bookmarks, and asks about the rest |
@@ -57,10 +57,10 @@ Bookmarks, icons and the background are stored in `uci` and baked into a static
 
 ```sh
 # OpenWrt 25.12 and newer (apk)
-apk add --allow-untrusted ./luci-app-portal-3.0.0-r4.apk
+apk add --allow-untrusted ./luci-app-portal-3.0.0-r8.apk
 
 # OpenWrt 24.10 and older (opkg), built from the matching SDK
-opkg install ./luci-app-portal_3.0.0-r4_all.ipk
+opkg install ./luci-app-portal_3.0.0-r8_all.ipk
 ```
 
 Then open **Services → Portal** in LuCI, or go straight to

@@ -47,7 +47,7 @@ const NAME_RE = /^[A-Za-z0-9_.\-]+$/;
 /*
  * `reject: true` matters more here than anywhere else: without it a ubus level
  * rejection arrives as the plain number 2 and the caller below reads that as a
- * success, reloads the page and tells the user the upload worked. See run_rpc().
+ * success and redraws the list as if the file had landed. See run_rpc().
  *
  * `params` is the array form, which names the arguments positionally: the call
  * sites pass dir_key(dir), name - not a { dir, name } object. An object would
@@ -314,6 +314,13 @@ function upload(dir, file, taken) {
 	data.append('filename', TMP_UPLOAD);
 	data.append('filedata', file);
 
+	/*
+	 * No success message: the list below redraws itself from the backend the
+	 * moment the upload lands, and the new tile appearing in it is the
+	 * confirmation. A toast saying "Uploaded <name>." repeated that, and sat
+	 * on top of the very row it reported on - the same reason the scan flow
+	 * dropped its "Added N bookmark(s)" notice.
+	 */
 	return common.run_rpc(function() {
 		return request.post(L.env.cgi_base + '/cgi-upload', data, { timeout: 0 })
 			.then(function(res) {
@@ -324,7 +331,7 @@ function upload(dir, file, taken) {
 
 				return callUpload(dir_key(dir), name);
 			});
-	}, _('Uploaded %s.').format(name)).then(function(res) {
+	}, null).then(function(res) {
 		if (res != null)
 			refresh_assets();
 	});
@@ -421,9 +428,9 @@ function remove_file(dir, entry) {
 				click: function() {
 					ui.hideModal();
 
-					return common.run_rpc(function() {
-						return callRemove(dir_key(dir), entry.name);
-					}, _('Deleted %s.').format(entry.name)).then(function(res) {
+				return common.run_rpc(function() {
+					return callRemove(dir_key(dir), entry.name);
+				}, null).then(function(res) {
 						if (res != null)
 							refresh_assets();
 					});
