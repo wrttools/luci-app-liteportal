@@ -5,6 +5,23 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **门户设置页去掉「立即重新生成 links.json」按钮**（ROADMAP #10）：配置变更本就会触发
+  `/etc/init.d/portal reload`，而 `init.d/portal` 注册了
+  `procd_add_reload_trigger "portal"` 且未定义 `reload_service()`，故 `rc.common` 默认的
+  `reload()` 走 `start_service()` —— 点「保存并应用」就重新烘焙，无论配置是否真的变了。
+
+  该按钮是通往同一件事的第二条路径，且有误导性：按它会重新发布，却并不解决用户想改的东西。
+  「维护」区段因此只剩「扫描本地服务并添加」一个按钮。
+
+  前端随之删除已无调用方的 `callGenerate` 声明与导出。**后端的 `generate` 方法、ACL 授权、
+  `init.d` 的 `generate_links()` 一律保留** —— reload 触发器正是靠
+  `ubus call luci.portal generate` 实现的。
+
+  `PKG_RELEASE` 随之升到 4：3.0.0-r3 已发布，本轮有内容变更，同号会让包管理器
+  把新包当成同一个而跳过升级。
+
 ## [3.0.0-r3] - 2026-10-13
 
 ### Changed
