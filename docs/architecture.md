@@ -13,8 +13,8 @@
 | `htdocs/luci-static/resources/portal/common.js` | `/www/luci-static/resources/portal/` | 跨视图共享：RPC 封装、状态面板、错误上报 |
 | `htdocs/luci-static/resources/view/portal/*.js` | `/www/luci-static/resources/view/portal/` | 三个 LuCI 视图，各自 `L.view()` 导出一个页面 |
 | `root/usr/share/rpcd/ucode/portal.uc` | 原样 | 后端，`luci.portal` ubus 对象 |
-| `root/usr/share/rpcd/acl.d/luci-app-portal.json` | 原样 | 上述方法的权限白名单 |
-| `root/usr/share/luci/menu.d/luci-app-portal.json` | 原样 | 菜单注册 |
+| `root/usr/share/rpcd/acl.d/luci-app-liteportal.json` | 原样 | 上述方法的权限白名单 |
+| `root/usr/share/luci/menu.d/luci-app-liteportal.json` | 原样 | 菜单注册 |
 | `root/usr/share/portal/www/` | `/usr/share/portal/www/` | 门户前端模板；服务脚本拷进 `/www/portal/` |
 | `root/etc/init.d/portal` | `/etc/init.d/portal` | 服务脚本：发布 / 撤下页面并生成 `links.json`（本身不起进程） |
 | `root/etc/config/portal` | `/etc/config/portal` | 默认 uci 配置（conffile） |

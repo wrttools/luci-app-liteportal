@@ -55,10 +55,10 @@
 
 ```sh
 # OpenWrt 25.12 及更新（apk）
-apk add --allow-untrusted ./luci-app-portal-3.0.1-r5.apk
+apk add --allow-untrusted ./luci-app-liteportal-3.0.2.apk
 
 # OpenWrt 24.10 及更早（opkg），需用对应 SDK 构建
-opkg install ./luci-app-portal_3.0.1-r5_all.ipk
+opkg install ./luci-app-liteportal_3.0.2_all.ipk
 ```
 
 然后进 LuCI 的**服务 → Portal**，或直接访问 `http://<路由器>/portal/`。
@@ -71,8 +71,8 @@ opkg install ./luci-app-portal_3.0.1-r5_all.ipk
 | `htdocs/luci-static/resources/view/portal/general.js` | LuCI 视图 —— 开关、标题、背景、外观、维护 |
 | `htdocs/luci-static/resources/view/portal/bookmarks.js` | LuCI 视图 —— 书签表格 |
 | `htdocs/luci-static/resources/view/portal/assets.js` | LuCI 视图 —— 图标与背景素材库 |
-| `root/usr/share/luci/menu.d/luci-app-portal.json` | 菜单注册 |
-| `root/usr/share/rpcd/acl.d/luci-app-portal.json` | 各视图的 ubus / uci / 文件权限 |
+| `root/usr/share/luci/menu.d/luci-app-liteportal.json` | 菜单注册 |
+| `root/usr/share/rpcd/acl.d/luci-app-liteportal.json` | 各视图的 ubus / uci / 文件权限 |
 | `root/usr/share/rpcd/ucode/portal.uc` | 后端：`luci.portal` ubus 对象（仅插件，无 CLI 模式） |
 | `root/etc/init.d/portal` | 服务脚本：发布 / 撤下页面并生成 `links.json`，本身不起任何进程 |
 | `root/usr/share/portal/www/` | 门户前端模板（`index.html`、`portal.js`、`portal.css`），会被拷进 `/www/portal/` |
@@ -106,7 +106,7 @@ ubus call luci.portal rename '{ "dir": "bg", "name": "wallpaper.jpg", "new_name"
 ubus call luci.portal remove  '{ "dir": "bg", "name": "home.jpg" }'
 ```
 
-上面每个方法都必须出现在 `root/usr/share/rpcd/acl.d/luci-app-portal.json` 中，
+上面每个方法都必须出现在 `root/usr/share/rpcd/acl.d/luci-app-liteportal.json` 中，
 否则浏览器里会得到 *Access denied*。`scripts/check.sh` 每次运行都会核对这份对应关系。
 
 扫描结果的 `web` 字段有三种取值：
@@ -218,9 +218,9 @@ cd immortalwrt-sdk-*/
 ./scripts/feeds update -a
 ./scripts/feeds install -a
 
-cp -r /path/to/luci-app-portal package/
+cp -r /path/to/luci-app-portal package/luci-app-liteportal
 make defconfig
-make package/luci-app-portal/compile V=s
+make package/luci-app-liteportal/compile V=s
 ```
 
 产物在 `bin/packages/<arch>/luci/`。注意 SDK 自带的 `.config` 描述的是一整个固件镜像；

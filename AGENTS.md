@@ -56,7 +56,7 @@ luci-app-portal — 给 OpenWrt / ImmortalWrt 用的静态 HTML 导航页：跑�
 - 提交：Conventional Commits，type 用英文前缀（`feat`/`fix`/`docs`/`test`/`chore`/`refactor`/`ci`）；描述可用中文；标题总长 ≤ 72 字符。
 - 每完成一项，更新 `ROADMAP.md` 对应行状态，并在 `CHANGELOG.md` 的 `[Unreleased]` 对应分类补一条。
 - **本项目特有**：改动任何 ubus 方法时，必须同步核对
-  `root/usr/share/rpcd/acl.d/luci-app-portal.json` 的白名单 —— 只改 `.uc` 不改 ACL 的结果是
+  `root/usr/share/rpcd/acl.d/luci-app-liteportal.json` 的白名单 —— 只改 `.uc` 不改 ACL 的结果是
   `Access denied`，而这类失败在本地看不出来。
 
 ## 4. 红线（违反即回滚）
@@ -115,7 +115,7 @@ luci-app-portal — 给 OpenWrt / ImmortalWrt 用的静态 HTML 导航页：跑�
 | 契约 / 事实 | 唯一事实源在哪 |
 |---|---|
 | uci 配置项与默认值 | `root/etc/config/portal`（默认值）+ LuCI 表单 `htdocs/luci-static/resources/view/portal/*.js` |
-| ubus 方法契约 | `root/usr/share/rpcd/ucode/portal.uc` 的 `const methods = {…}` 表（每行一条）；ACL 白名单在 `root/usr/share/rpcd/acl.d/luci-app-portal.json` |
+| ubus 方法契约 | `root/usr/share/rpcd/ucode/portal.uc` 的 `const methods = {…}` 表（每行一条）；ACL 白名单在 `root/usr/share/rpcd/acl.d/luci-app-liteportal.json` |
 | `links.json` 结构 | 生产者 `portal.uc` 的 `generate()`；消费者 `root/usr/share/portal/www/portal.js` |
 | 门户静态文件的落点与 URL 前缀 | `portal.uc` 的 `WWW` / `URL_BASE`、`root/etc/init.d/portal` 的 `PORTAL_WWW`、`acl.d` 的文件白名单、`assets.js` 的 `ICON_DIR`/`BG_DIR`/`PORTAL_PATH` —— 同一套值，改一处就是五处一起改 |
 | 端口 → 服务分类规则 | `portal.uc` 的 `classify_port()` |
@@ -129,7 +129,7 @@ luci-app-portal — 给 OpenWrt / ImmortalWrt 用的静态 HTML 导航页：跑�
 
 | 改了什么 | 同回合必须过一遍 |
 |---|---|
-| `portal.uc` 的 `const methods = {…}` | `root/usr/share/rpcd/acl.d/luci-app-portal.json` 白名单（漏了 = 运行时 `Access denied`） |
+| `portal.uc` 的 `const methods = {…}` | `root/usr/share/rpcd/acl.d/luci-app-liteportal.json` 白名单（漏了 = 运行时 `Access denied`） |
 | 用户可见字符串 | `po/templates/portal.pot` + `po/zh_Hans/portal.po`（漏了中文界面会漏出英文） |
 | `Makefile` 的 `PKG_VERSION` / `PKG_RELEASE` | `README.md` / `README.zh-CN.md` 安装示例的版本号 |
 | uci 配置项 / 设置键 | 本文件 §8 坐标表对应行 + `README*.md` 的 *uci reference* |

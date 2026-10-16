@@ -1,5 +1,5 @@
 {
-	"luci-app-portal": {
+	"luci-app-liteportal": {
 		"description": "Grant access to the Portal configuration",
 		"read": {
 			"file": {

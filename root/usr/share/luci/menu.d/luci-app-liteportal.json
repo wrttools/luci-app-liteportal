@@ -6,7 +6,7 @@
 			"type": "firstchild"
 		},
 		"depends": {
-			"acl": [ "luci-app-portal" ]
+			"acl": [ "luci-app-liteportal" ]
 		}
 	},
 
@@ -18,7 +18,7 @@
 			"path": "portal/general"
 		},
 		"depends": {
-			"acl": [ "luci-app-portal" ]
+			"acl": [ "luci-app-liteportal" ]
 		}
 	},
 
@@ -30,7 +30,7 @@
 			"path": "portal/bookmarks"
 		},
 		"depends": {
-			"acl": [ "luci-app-portal" ]
+			"acl": [ "luci-app-liteportal" ]
 		}
 	},
 
@@ -42,7 +42,7 @@
 			"path": "portal/assets"
 		},
 		"depends": {
-			"acl": [ "luci-app-portal" ]
+			"acl": [ "luci-app-liteportal" ]
 		}
 	}
 }
