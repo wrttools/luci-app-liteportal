@@ -45,6 +45,26 @@ else
 	rm -f /tmp/portal-check-js.$$
 fi
 
+# ---------------------------------------------------------------- form logic
+# The LuCI form layer cannot run in a browser here, but the rule that shipped
+# broken once is checkable from the source: LuCI ORs multiple depends() calls,
+# so an option gated on two conditions must use the object form. The custom
+# search URL used two calls, which kept it - and its validator - active for
+# every engine once the search box was on, and an empty value then failed the
+# whole save. scripts/test-search-form.js extracts the real declarations and
+# checks the dependency shape, its effect under those semantics, the validator
+# matrix and the shared regex of the two gates.
+note "search form dependency and validator"
+if command -v node >/dev/null 2>&1; then
+	if node scripts/test-search-form.js; then
+		ok "search_url depends() is an AND; validator matrix holds"
+	else
+		fail "scripts/test-search-form.js"
+	fi
+else
+	printf '  skip  node not installed (CI has it; see build.yml)\n'
+fi
+
 # ---------------------------------------------------------------- JSON
 # The menu registration and the rpcd ACL. Both are consumed by LuCI/rpcd at
 # runtime: a syntax error there is invisible until the page fails to load, and

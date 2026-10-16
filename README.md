@@ -57,10 +57,10 @@ Bookmarks, icons and the background are stored in `uci` and baked into a static
 
 ```sh
 # OpenWrt 25.12 and newer (apk)
-apk add --allow-untrusted ./luci-app-portal-3.0.1-r3.apk
+apk add --allow-untrusted ./luci-app-portal-3.0.1-r4.apk
 
 # OpenWrt 24.10 and older (opkg), built from the matching SDK
-opkg install ./luci-app-portal_3.0.1-r3_all.ipk
+opkg install ./luci-app-portal_3.0.1-r4_all.ipk
 ```
 
 Then open **Services → Portal** in LuCI, or go straight to
