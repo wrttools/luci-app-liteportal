@@ -145,12 +145,18 @@ return view.extend({
 			 * here and once more in the backend - the same two-gate rule the
 			 * upload limits follow, because a hand edited /etc/config/portal
 			 * never went through this form.
+			 *
+			 * Both conditions belong in ONE depends() call, in object form.
+			 * Separate calls are alternatives (a logical or); only the object
+			 * form is an "and". Written as two calls, this option stays active
+			 * for every engine as soon as the search box is on: the field shows
+			 * where it does not belong, and its validator runs on an empty value
+			 * and fails the whole save - so no engine pick ever reaches uci.
 			 */
 			o = s.option(form.Value, 'search_url', _('Custom search URL'),
 				_('The results URL of your engine, with %s where the keyword goes.'));
 			o.placeholder = 'https://example.com/search?q=%s';
-			o.depends('search_engine', 'custom');
-			o.depends('search_enabled', '1');
+			o.depends({ search_engine: 'custom', search_enabled: '1' });
 			o.validate = function(section_id, value) {
 				const template = (value == null) ? '' : String(value).trim();
 
