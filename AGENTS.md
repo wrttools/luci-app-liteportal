@@ -139,7 +139,7 @@ luci-app-portal — 给 OpenWrt / ImmortalWrt 用的静态 HTML 导航页：跑�
 | 红线 / DoD | `docs/definition-of-done.md` 同步（不得放宽） |
 | 章节标题 | 全仓扫一遍按「§N」引用本文件的地方 |
 | 决策理由变更 | 新增一条 ADR，`docs/adr/` 旧记录原样保留 |
-| 发版（打 tag / 建 Release） | tag 用 `v<PKG_VERSION>-r<PKG_RELEASE>`（两个值取自 `Makefile`，见 §8）；release title 与 tag 一致；`CHANGELOG.md` 的 `[Unreleased]` 改名 `<PKG_VERSION>-r<PKG_RELEASE> - 日期`（不带 v），顶部补空的 `[Unreleased]` |
+| 发版（打 tag / 建 Release） | 对外版本用**纯语义化版本号，不带 `-r`**。<br>旧约定 `v<PKG_VERSION>-r<PKG_RELEASE>` 已发布的 `v3.0.1-r1` 等**保留不变**，本规则自下一版 `v3.0.2` 起生效。<br>① `PKG_VERSION` 变化（semver 升级）：tag 与 release title 均为 `v<PKG_VERSION>`（如 `v3.0.2`）；<br>② 仅升 `PKG_RELEASE`、不改 `PKG_VERSION` 的纯打包重发：tag 与 release title 为 `v<PKG_VERSION>+<PKG_RELEASE>`（如 `v3.0.1+2`），**不新建 CHANGELOG 段落**，只在对应 `[<PKG_VERSION>]` 段下注明「PKG_RELEASE → N（仅打包修正）」并回传 `.apk` 资产；<br>③ `CHANGELOG.md` 的 `[Unreleased]` 改名为 `[<PKG_VERSION>] - 日期`（不带 v、不带 `-r`/`+N`），顶部补空 `[Unreleased]`。<br>注意：`Makefile` 的 `PKG_VERSION`/`PKG_RELEASE` 仍照常填写 —— OpenWrt 包名恒为 `PKG_VERSION-rPKG_RELEASE`（如 `luci-app-portal-3.0.1-r2`），**不受本条 tag 规则影响**。 |
 
 其中「`portal.uc` 方法表」与「用户可见字符串」两行漏掉时 `scripts/check.sh` 会抓到；
 其余几行不会 —— 靠这张表和 review。
