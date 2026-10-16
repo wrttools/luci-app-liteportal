@@ -506,7 +506,7 @@ function asset_section(title, dir, entries, current_bg) {
 			]);
 		});
 
-	return E('div', { class: 'cbi-section' }, [
+	return E('div', { class: 'cbi-section portal-panel' }, [
 		E('h3', {}, title),
 		E('div', { style: 'margin-bottom:.6em' },
 			upload_button(dir, entries.map(function(e) { return e.name; }))),
@@ -561,7 +561,10 @@ return view.extend({
 				asset_section(_('Backgrounds'), BG_DIR, this.bgs, this.current_bg)
 			]);
 
-			return E('div', { class: 'cbi-map' }, [
+			return E('div', { class: 'cbi-map portal-admin' }, [
+				/* The style tag travels with the wrapper: this LuCI has
+				 * no view-level css() hook. */
+				E('style', { type: 'text/css' }, [ common.admin_css() ]),
 				E('h2', {}, _('Assets')),
 				E('div', { class: 'cbi-map-descr' },
 					_('Icons and background images offered to the portal. Files are served ' +
