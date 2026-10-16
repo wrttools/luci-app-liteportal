@@ -428,7 +428,7 @@ return baseclass.extend(/** @lends LuCI.portal.common.prototype */ {
 			});
 		}
 
-		const node = E('div', { class: 'cbi-section' }, [
+		const node = E('div', { class: 'cbi-section portal-panel' }, [
 			E('h3', {}, _('Service status')),
 			body,
 			E('div', { style: 'margin-top:.8em' }, [
@@ -519,6 +519,32 @@ return baseclass.extend(/** @lends LuCI.portal.common.prototype */ {
 		}.bind(this);
 
 		return s;
+	},
+
+	/*
+	 * Shared stylesheet for the three admin views. Each view drops it into
+	 * a <style> tag inside its .portal-admin wrapper (this LuCI has no
+	 * view-level css() hook), and every rule is scoped under that class,
+	 * so none of it can reach other pages or other apps. Left on its own,
+	 * spacing comes from the active theme, and themes disagree - Argon in
+	 * particular keeps button margins at zero and table cell contents
+	 * top aligned.
+	 */
+	admin_css: function() {
+		return [
+			/* Breathing room below the last card, before the page edge. */
+			'.portal-admin { padding-bottom: 2em }',
+
+			/* Panels built by hand (status, asset sections) are not part
+			 * of a form.Map, so themes that only pad map sections leave
+			 * their contents flush against the container edge. */
+			'.portal-admin .portal-panel { padding-left: .6em; padding-right: .6em }',
+
+			/* Buttons default to baseline alignment; the row thumbnail is
+			 * vertical-align:middle already, so an unaligned button makes
+			 * the picture sit visibly above the row's centre. */
+			'.portal-admin .cbi-section-table .btn { vertical-align: middle }'
+		].join('\n');
 	},
 
 	callStatus: callStatus,

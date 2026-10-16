@@ -500,6 +500,10 @@ const BookmarkTable = form.TableSection.extend({
 		return E('button', {
 			class: 'btn cbi-button cbi-button-negative',
 			disabled: this.map.readonly || null,
+			/* Themes disagree on whether buttons carry their own margin;
+			 * Argon keeps it at zero, which glues these two to the "Add"
+			 * button left of them. */
+			style: 'margin-left:.5em',
 			click: function(ev) {
 				ev.preventDefault();
 
@@ -658,7 +662,16 @@ return view.extend({
 				update_thumb(this.map, section_id, value);
 			};
 
-			return m.render();
+			/* Wrapped so the shared stylesheet (common.admin_css()) has
+			 * its .portal-admin scope, and so the page gets the same
+			 * bottom padding across themes. The style tag travels with
+			 * the wrapper: this LuCI has no view-level css() hook. */
+			return m.render().then(function(mapNode) {
+				return E('div', { class: 'portal-admin' }, [
+					E('style', { type: 'text/css' }, [ common.admin_css() ]),
+					mapNode
+				]);
+			});
 		}.bind(this));
 	}
 });

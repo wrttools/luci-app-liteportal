@@ -172,7 +172,15 @@ return view.extend({
 			return m.render().then(function(mapNode) {
 				/* The panel starts out empty, fill it once the map is built. */
 				return status.refresh().then(function() {
-					return E('div', {}, [ status, mapNode ]);
+					/* The portal-admin class scopes the shared stylesheet
+					 * (see common.admin_css()); it also carries the page
+					 * bottom padding themes like Argon do not provide.
+					 * The style tag travels with the wrapper: this LuCI
+					 * has no view-level css() hook. */
+					return E('div', { class: 'portal-admin' }, [
+						E('style', { type: 'text/css' }, [ common.admin_css() ]),
+						status, mapNode
+					]);
 				});
 			});
 		}.bind(this));
