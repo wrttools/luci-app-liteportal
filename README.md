@@ -57,10 +57,10 @@ Bookmarks, icons and the background are stored in `uci` and baked into a static
 
 ```sh
 # OpenWrt 25.12 and newer (apk)
-apk add --allow-untrusted ./luci-app-portal-3.0.1-r5.apk
+apk add --allow-untrusted ./luci-app-liteportal-3.0.2.apk
 
 # OpenWrt 24.10 and older (opkg), built from the matching SDK
-opkg install ./luci-app-portal_3.0.1-r5_all.ipk
+opkg install ./luci-app-liteportal_3.0.2_all.ipk
 ```
 
 Then open **Services → Portal** in LuCI, or go straight to
@@ -74,8 +74,8 @@ Then open **Services → Portal** in LuCI, or go straight to
 | `htdocs/luci-static/resources/view/portal/general.js` | LuCI view — switch, title, background, appearance, maintenance |
 | `htdocs/luci-static/resources/view/portal/bookmarks.js` | LuCI view — the bookmark table |
 | `htdocs/luci-static/resources/view/portal/assets.js` | LuCI view — the icon and background image library |
-| `root/usr/share/luci/menu.d/luci-app-portal.json` | Menu registration |
-| `root/usr/share/rpcd/acl.d/luci-app-portal.json` | ubus / uci / file permissions for the views |
+| `root/usr/share/luci/menu.d/luci-app-liteportal.json` | Menu registration |
+| `root/usr/share/rpcd/acl.d/luci-app-liteportal.json` | ubus / uci / file permissions for the views |
 | `root/usr/share/rpcd/ucode/portal.uc` | Backend: the `luci.portal` ubus object (plugin only, no CLI mode) |
 | `root/etc/init.d/portal` | Service script: publishes or withdraws the page and bakes `links.json`; runs no daemon of its own |
 | `root/usr/share/portal/www/` | Portal frontend template (`index.html`, `portal.js`, `portal.css`), copied into `/www/portal/` |
@@ -110,7 +110,7 @@ ubus call luci.portal rename '{ "dir": "bg", "name": "wallpaper.jpg", "new_name"
 ubus call luci.portal remove  '{ "dir": "bg", "name": "home.jpg" }'
 ```
 
-Every method above must be listed in `root/usr/share/rpcd/acl.d/luci-app-portal.json`,
+Every method above must be listed in `root/usr/share/rpcd/acl.d/luci-app-liteportal.json`,
 otherwise the view gets *Access denied* in the browser. `scripts/check.sh` verifies
 this correspondence on every run.
 
@@ -238,9 +238,9 @@ cd immortalwrt-sdk-*/
 ./scripts/feeds update -a
 ./scripts/feeds install -a
 
-cp -r /path/to/luci-app-portal package/
+cp -r /path/to/luci-app-portal package/luci-app-liteportal
 make defconfig
-make package/luci-app-portal/compile V=s
+make package/luci-app-liteportal/compile V=s
 ```
 
 The artefact lands in `bin/packages/<arch>/luci/`. Note that the SDK ships a

@@ -1,5 +1,5 @@
 #!/bin/sh
-# Local and CI gate for luci-app-portal.
+# Local and CI gate for luci-app-liteportal.
 #
 # This project is a pure script package with no compiled unit tests, so the gate
 # is syntax-level plus cross-reference consistency. It runs the very same script
@@ -71,8 +71,8 @@ fi
 # an ACL error shows up only as "Access denied" in the browser.
 note "JSON"
 for f in \
-	root/usr/share/luci/menu.d/luci-app-portal.json \
-	root/usr/share/rpcd/acl.d/luci-app-portal.json
+	root/usr/share/luci/menu.d/luci-app-liteportal.json \
+	root/usr/share/rpcd/acl.d/luci-app-liteportal.json
 do
 	if python3 -m json.tool "$f" >/dev/null 2>&1; then
 		ok "$f"
@@ -124,7 +124,7 @@ methods=$(sed -n '/^const methods = {/,/^};/p' root/usr/share/rpcd/ucode/portal.
 if [ -z "$methods" ]; then
 	fail "could not read the method table from portal.uc (expected \`const methods = { … }\`)"
 else
-	acl=$(cat root/usr/share/rpcd/acl.d/luci-app-portal.json)
+	acl=$(cat root/usr/share/rpcd/acl.d/luci-app-liteportal.json)
 	for m in $methods; do
 		if printf '%s' "$acl" | grep -q "\"$m\""; then
 			ok "luci.portal.$m"

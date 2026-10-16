@@ -7,8 +7,14 @@
 
 include $(TOPDIR)/rules.mk
 
-PKG_VERSION:=3.0.1
-PKG_RELEASE:=5
+PKG_VERSION:=3.0.2
+PKG_RELEASE:=1
+
+# The package name must not be left to luci.mk's `notdir $(CURDIR)`: make
+# resolves the SDK's package/ symlink, so CURDIR would name this checkout
+# directory (luci-app-portal) rather than the package we ship. Pin it here -
+# luci.mk picks a caller-provided LUCI_NAME up through its `?=` assignment.
+LUCI_NAME:=luci-app-liteportal
 
 # luci.mk derives PKG_PO_VERSION from git and, without a git checkout, from the
 # newest file mtime in the package directory. That changes on every rebuild and
@@ -34,17 +40,17 @@ LUCI_URL:=https://github.com/wrttools/luci-app-portal
 # working tree. The init script has to be executable, and a checkout that lost
 # the bit (Windows tooling, a copy, core.filemode=false hiding the change)
 # would otherwise ship a package whose service can never start.
-define Build/Prepare/luci-app-portal
+define Build/Prepare/luci-app-liteportal
 	$(INSTALL_DIR) $(PKG_BUILD_DIR)
 	$(CP) ./LICENSE $(PKG_BUILD_DIR)/LICENSE
 	chmod 0755 $(PKG_BUILD_DIR)/root/etc/init.d/portal
 endef
 
-define Package/luci-app-portal/conffiles
+define Package/luci-app-liteportal/conffiles
 /etc/config/portal
 endef
 
-define Package/luci-app-portal/postinst
+define Package/luci-app-liteportal/postinst
 #!/bin/sh
 # $${IPKG_INSTROOT} is set by opkg, $${PKG_INSTROOT} by apk-tools.
 [ -z "$${IPKG_INSTROOT}$${PKG_INSTROOT}" ] || exit 0
@@ -80,7 +86,7 @@ sleep 1
 # with no bookmarks on it and nothing in the log to explain why.
 out=$$(ubus call luci.portal generate 2>&1); \
 printf '%s' "$$out" | grep -q '"ok"[[:space:]]*:[[:space:]]*true' \
-	|| { echo "luci-app-portal: links.json not generated: $$out" >&2; \
+	|| { echo "luci-app-liteportal: links.json not generated: $$out" >&2; \
 	     logger -t portal "links.json not generated during install: $$out"; }
 
 # root/ is copied verbatim by the build system, so the init script carries
@@ -90,11 +96,11 @@ printf '%s' "$$out" | grep -q '"ok"[[:space:]]*:[[:space:]]*true' \
 chmod 0755 /etc/init.d/portal 2>/dev/null
 
 if ! /etc/init.d/portal enable; then \
-	echo "luci-app-portal: failed to enable the portal service" >&2; \
+	echo "luci-app-liteportal: failed to enable the portal service" >&2; \
 	logger -t portal "failed to enable the portal service"; \
 fi
 if ! /etc/init.d/portal start; then \
-	echo "luci-app-portal: failed to start the portal service" >&2; \
+	echo "luci-app-liteportal: failed to start the portal service" >&2; \
 	logger -t portal "failed to start the portal service"; \
 fi
 
@@ -104,7 +110,7 @@ rm -rf /tmp/luci-modulecache/
 exit 0
 endef
 
-define Package/luci-app-portal/prerm
+define Package/luci-app-liteportal/prerm
 #!/bin/sh
 [ -z "$${IPKG_INSTROOT}$${PKG_INSTROOT}" ] || exit 0
 
@@ -115,11 +121,11 @@ define Package/luci-app-portal/prerm
 chmod 0755 /etc/init.d/portal 2>/dev/null
 
 if ! /etc/init.d/portal stop; then \
-	echo "luci-app-portal: failed to stop the portal service" >&2; \
+	echo "luci-app-liteportal: failed to stop the portal service" >&2; \
 	logger -t portal "failed to stop the portal service"; \
 fi
 if ! /etc/init.d/portal disable; then \
-	echo "luci-app-portal: failed to disable the portal service" >&2; \
+	echo "luci-app-liteportal: failed to disable the portal service" >&2; \
 	logger -t portal "failed to disable the portal service"; \
 fi
 

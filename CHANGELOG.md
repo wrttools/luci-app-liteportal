@@ -5,8 +5,18 @@
 
 ## [Unreleased]
 
+## [3.0.2] - 2026-10-16
+
 ### Changed
 
+- **软件包更名 `luci-app-portal` → `luci-app-liteportal`**：apk / ipk 包名与
+  翻译包（`luci-i18n-liteportal-zh-cn`）随之更名，菜单 / ACL 注册文件更名为
+  `menu.d/luci-app-liteportal.json` 与 `acl.d/luci-app-liteportal.json`（ACL 组名
+  同步）。**运行时标识全部不变**：uci 配置仍为 `/etc/config/portal`、ubus 对象
+  仍为 `luci.portal`、服务仍为 `/etc/init.d/portal`、菜单路径仍为 `admin/portal`、
+  门户页仍发布在 `/portal/`。**从旧包升级**须先卸载旧包：
+  `apk del luci-app-portal luci-i18n-portal-zh-cn`（conffile `/etc/config/portal`
+  会随旧包删除，卸载前请备份，装新包后还原）。
 - **管理页间距规范化（ROADMAP #26–#30，Argon 主题下实测贴边/偏移的五处）**：
   三个视图新增共享样式（`common.admin_css()`，经渲染产物内的 `<style>` 标签注入，
   全部规则作用域限定 `.portal-admin` 包裹层，不触碰主题）：页面底部补呼吸空隙；
