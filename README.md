@@ -1,7 +1,7 @@
 # luci-app-liteportal
 
-A static HTML navigation dashboard for OpenWrt / ImmortalWrt, served on its own
-port by a dedicated `uhttpd` instance and configured entirely from LuCI.
+A static HTML navigation dashboard for OpenWrt / ImmortalWrt, served by the
+router's existing `uhttpd` under `/liteportal/` and configured entirely from LuCI.
 
 [中文说明](README.zh-CN.md)
 
@@ -42,10 +42,36 @@ Bookmarks, icons and the background are stored in `uci` and baked into a static
 | Bookmarks | Add, enable/disable and delete; emoji, remote URL or an image from the asset library (a thumbnail is shown in the row when an asset image is used) |
 | Asset library | Upload (2 MiB per file), preview, rename, list and delete icons and background images, and pick the page background |
 | Appearance | Page title, CSS background colour or a background image, plus 0-100 sliders for background dimming, frosted blur and bookmark-card transparency |
+| Search box | A search field that stays hidden until you press the space bar, submits straight to the chosen engine from the browser, and needs no backend at all |
 | Discovery | Scans `/proc/net/tcp[6]` for locally reachable listening services, adds the known web ones as *disabled* bookmarks, and asks about the rest |
 | Status panel | Reports whether the page is reachable *and*, when it is not, which of the two conditions behind that is missing — plus the address and the baked bookmark count |
 | Static output | Everything is persisted in `uci` and rendered into `links.json`; the page is plain HTML/JS |
 | No `luci-compat` | Pure JavaScript views on the modern LuCI stack — no Lua runtime required |
+
+## Using the search box
+
+Enable it under *General → Search box* and the portal page gains a search field
+that stays out of the way until you call for it. That is the whole point: the
+page is a grid of links, and a permanently visible input would compete with them.
+
+| Action | Result |
+|---|---|
+| Press `Space` anywhere on the page | The box appears and takes focus |
+| Press `Space` again while the box is empty, or `Esc` | The box is put away |
+| Type, then `Enter` | The results open in a new tab; the box clears and hides |
+
+Two behaviours worth knowing before they surprise you:
+
+- **A space typed into a non-empty box is a space.** Only an empty box hides on
+  `Space`, so a two-word query needs no modifier.
+- **An input method keeps its own space bar.** While a composition is in progress
+  the key belongs to the IME, and any other text field on the page keeps its
+  space bar as well.
+
+The query is submitted by the browser straight to the engine, so the router needs
+no backend method for it — nothing to grant in the ACL. The engine is picked in
+the same *General* page: Google, Bing, DuckDuckGo, Baidu, or *Custom* with your
+own results URL (`%s` marks where the keyword goes).
 
 ## Requirements
 
@@ -58,39 +84,14 @@ Bookmarks, icons and the background are stored in `uci` and baked into a static
 
 ```sh
 # OpenWrt 25.12 and newer (apk)
-apk add --allow-untrusted ./luci-app-liteportal-4.0.0-r1.apk
+apk add --allow-untrusted ./luci-app-liteportal-4.0.1-r1.apk
 
 # OpenWrt 24.10 and older (opkg), built from the matching SDK
-opkg install ./luci-app-liteportal_4.0.0-r1_all.ipk
+opkg install ./luci-app-liteportal_4.0.1-r1_all.ipk
 ```
 
 Then open **Services → Portal** in LuCI, or go straight to
 `http://<router>/liteportal/`.
-
-### Upgrading from 3.x
-
-4.0.0 renames every runtime identifier at once — the configuration file, the
-ubus object, the service, the menu path and the page URL. **Nothing is migrated
-automatically.** Remove the old package and install this one; the old settings
-and uploaded icons are not carried over.
-
-```sh
-apk del luci-app-portal luci-i18n-portal-zh-cn    # or luci-app-liteportal 3.x
-apk add --allow-untrusted ./luci-app-liteportal-4.0.0-r1.apk
-```
-
-That is a deliberate choice rather than a limitation: the package has only ever
-run on the maintainer's test VM, so there is no installed base to carry over,
-and an automatic migration would be code written for users who do not exist.
-Removing the old package first is also what cleans up after it — its `prerm`
-deletes `/www/portal`. Upgrading in place instead leaves `/etc/config/portal`
-and `/www/portal` behind as unowned files, and `/portal/` keeps answering with
-the old page until `/www/portal` is deleted by hand.
-
-What changes: the page from `/portal/` to `/liteportal/`, the settings from
-`admin/services/portal` to `admin/services/liteportal`, the configuration from
-`/etc/config/portal` to `/etc/config/liteportal`, and the ubus object from
-`luci.portal` to `luci.liteportal`. The menu entry keeps its **Portal** label.
 
 ## Layout
 
@@ -159,14 +160,14 @@ cannot double as a command line tool. Call it over ubus as shown above.
 conditions behind it separately, because each has a different fix: `published`
 (the entry point and `links.json` are in place) and `server_listening` (the main
 uhttpd owns one of the ports it was configured with). `reachable` is the two of
-them together. There is no `url` any more: the browser composes the address from
+them together. The result carries no `url`: the browser composes the address from
 its own origin plus `path`, which is the one address guaranteed to be the server
 that is actually serving the page.
 
 ## uci reference
 
 ```
-config portal
+config liteportal
 	option enabled           '1'         # master switch; '0' takes the page off the web server
 	option title             'My Portal' # page heading and <title>
 	option background        '#0e1116'   # CSS colour
@@ -174,7 +175,7 @@ config portal
 	option bg_veil           '78'        # 0-100: how strongly a background image is dimmed
 	option bg_blur           '0'         # 0-100: frosted blur, 100 = the 20 px maximum
 	option card_transparency '45'        # 0-100: 100 = bookmark cards fully see-through
-	option search_enabled    '0'         # '1' shows a search box on the portal page
+	option search_enabled    '0'         # '1' enables the space-bar search box
 	option search_engine     'https://www.google.com/search?q=%s'  # results URL, %s = keyword
 
 config link
@@ -184,35 +185,27 @@ config link
 	option enabled  '1'
 ```
 
-The `port` option the previous release wrote here is gone along with the
-dedicated instance: the page is reachable on whatever port the main uhttpd
-listens on, and a leftover `port` in the file is simply ignored.
+The page carries no port of its own: it is reachable on whatever port the main
+`uhttpd` listens on, so there is nothing to open in the firewall.
 
-`enabled` is no longer "start or stop a daemon" but "publish or withdraw the
-page". Switching it off removes the entry point and `links.json` from
+`enabled` means "publish or withdraw the page", not "start or stop a daemon".
+Switching it off removes the entry point and `links.json` from
 `/www/liteportal/`, so `/liteportal/` stops resolving; the uploaded icons and
 backgrounds are left alone and come back when it is switched on again.
 
 `links.json` carries the title, the background and the three appearance
 percentages as they are written in uci; `liteportal.js` turns the percentages into
 the CSS custom properties `liteportal.css` consumes, so the served page never has to
-read uci itself. Deleting one of them falls back to the same value in the
-backend, which is how a configuration written before they existed keeps its look.
+read uci itself. A missing percentage falls back to the same default value in the
+backend, so a partially written configuration still renders.
 
-The portal page can carry a search box. `search_enabled` switches it on, and an
-absent value means off — a configuration written before the option existed keeps
-rendering without one. `search_engine` is the engine's results URL with `%s`
-standing for the keyword; the presets are listed on the settings page. Choosing
-*Custom* there sends the page to the template in `search_url` instead, an option
-the form writes only in that case. The engine list lives in the LuCI form and
-nowhere else: `links.json` carries just the resolved template, so the portal
-page holds no engine knowledge of its own.
-
-When the box is on it stays hidden — the page is a grid of links, and a
-permanent input would compete with them. Press the space bar anywhere on the
-page to bring it up (it focuses itself); press space again while it is empty,
-or Escape, to put it away. Enter opens the results in a new tab and clears the
-box. A space typed inside a non-empty box is just a space.
+`search_enabled` switches the search box on; an absent value means off.
+`search_engine` is the engine's results URL with `%s` standing for the keyword,
+and choosing *Custom* in the form sends the page to the template in `search_url`
+instead — an option written only in that case. The engine list lives in the LuCI
+form and nowhere else: `links.json` carries just the resolved template, so the
+portal page holds no engine knowledge of its own. **See *Using the search box*
+above for the keyboard interaction.**
 
 It is regenerated automatically whenever `/etc/config/liteportal` changes (LuCI
 *Save & Apply*, or `uci commit` plus `/etc/init.d/liteportal reload`).

@@ -1,7 +1,7 @@
 # luci-app-liteportal
 
-给 OpenWrt / ImmortalWrt 用的**静态 HTML 导航页**：跑在你自己指定的端口上，
-由独立的 `uhttpd` 实例提供服务，全部通过 LuCI 配置。
+给 OpenWrt / ImmortalWrt 用的**静态 HTML 导航页**：由路由器已有的 `uhttpd` 在
+`/liteportal/` 子路径下提供，全部通过 LuCI 配置，自身不起任何独立进程。
 
 [English](README.md)
 
@@ -40,10 +40,33 @@
 | 书签 | 增删与启用/禁用；图标支持 emoji、远程 URL 或素材库里的图片（用素材库图片时行内显示缩略图） |
 | 素材库 | 上传（单个 ≤ 2 MiB）、预览、重命名、列出与删除图标/背景图，并可直接设为页面背景 |
 | 外观 | 页面标题、CSS 背景色或背景图，另有背景压暗、磨砂模糊、书签卡片透明度三个 0–100 滑块 |
+| 搜索框 | 平时隐藏，按空格键唤出的搜索框；查询由浏览器直接提交给所选引擎，完全不涉及后端 |
 | Discovery | 读取 `/proc/net/tcp[6]`，把已知的 Web 服务加成**禁用**书签，其余端口交给你决定 |
 | 运行状态 | 报告页面是否**可访问**；不可访问时指出是「未发布」还是「服务器未监听」，并给出访问地址与已生成的书签数 |
 | 纯静态 | 配置存 `uci`，生成 `links.json` 供前端读取，页面本身不需要后端 |
 | 不依赖 `luci-compat` | 现代 LuCI（JavaScript 视图 + ucode 后端），无需 Lua 运行时 |
+
+## 搜索框怎么用
+
+在**常规 → 搜索框**里打开它，门户页就多了一个平时不占地方、需要时才出现的搜索框。
+设计意图很直接：门户页是一页链接，常驻输入框会和书签抢注意力。
+
+| 操作 | 效果 |
+|---|---|
+| 在页面任意位置按 `空格` | 搜索框出现并自动聚焦 |
+| 输入框为空时再按 `空格`，或按 `Esc` | 收起搜索框 |
+| 输入关键字后按 `回车` | 结果页在新标签页打开，门户页的输入框清空并收起 |
+
+两个容易踩到的细节：
+
+- **输入框里有内容时，空格就是空格。** 只有空输入框才会被空格收起，所以搜「open wrt」
+  这种多词查询不用按修饰键。
+- **输入法优先。** 正在组字（拼音、假名等）时空格交给输入法；页面上其他文本输入框也
+  各自保留自己的空格键。
+
+查询由浏览器直接提交给搜索引擎，路由器这一侧不需要任何后端方法，ACL 里也没有对应条目。
+引擎在同一个**常规**页选择：Google、Bing、DuckDuckGo、百度，或「自定义」并填自己的
+结果页 URL（`%s` 表示关键字的位置）。
 
 ## 环境要求
 
@@ -56,34 +79,13 @@
 
 ```sh
 # OpenWrt 25.12 及更新（apk）
-apk add --allow-untrusted ./luci-app-liteportal-4.0.0-r1.apk
+apk add --allow-untrusted ./luci-app-liteportal-4.0.1-r1.apk
 
 # OpenWrt 24.10 及更早（opkg），需用对应 SDK 构建
-opkg install ./luci-app-liteportal_4.0.0-r1_all.ipk
+opkg install ./luci-app-liteportal_4.0.1-r1_all.ipk
 ```
 
 然后进 LuCI 的**服务 → Portal**，或直接访问 `http://<路由器>/liteportal/`。
-
-### 从 3.x 升级
-
-4.0.0 一次性重命名了全部运行时标识 —— 配置文件、ubus 对象、服务、菜单路径与页面
-URL。**不做任何自动迁移。** 卸载旧包、装新包即可，旧设置与已上传素材不会带过来。
-
-```sh
-apk del luci-app-portal luci-i18n-portal-zh-cn    # 或 3.x 的 luci-app-liteportal
-apk add --allow-untrusted ./luci-app-liteportal-4.0.0-r1.apk
-```
-
-这是有意为之，不是能力所限：这个包只在维护者的测试虚拟机上跑过，没有存量设备需要
-照顾，自动迁移会变成「为不存在的用户写代码」。而且先卸旧包本身就会替它收尾 —— 旧包
-的 `prerm` 会删掉 `/www/portal`。反过来原地覆盖升级会把 `/etc/config/portal` 与
-`/www/portal` 留成无主文件，`/portal/` 也会继续用旧页面应答，直到手工删掉
-`/www/portal`。
-
-发生变化的是：页面从 `/portal/` 移到 `/liteportal/`，设置页从
-`admin/services/portal` 移到 `admin/services/liteportal`，配置从
-`/etc/config/portal` 移到 `/etc/config/liteportal`，ubus 对象从 `luci.portal` 改为
-`luci.liteportal`。菜单项名称仍显示 **Portal**。
 
 ## 目录结构
 
@@ -147,13 +149,13 @@ mDNS。与其双向猜测，不如把未识别的端口列出来让你一次性�
 
 `status` 只回答一个问题 —— 页面能不能打开 —— 并把背后的两个条件分开报告，因为两者
 的修法不同：`published`（入口文件与 `links.json` 是否就位）与 `server_listening`
-（主 uhttpd 是否占着它被配置的某个端口）。`reachable` 是这两者的交集。结果里不再有
+（主 uhttpd 是否占着它被配置的某个端口）。`reachable` 是这两者的交集。结果里不含
 `url`：地址由浏览器用自身 origin 加 `path` 拼出 —— 那才是**正在**提供页面的地址。
 
 ## uci 配置参考
 
 ```
-config portal
+config liteportal
 	option enabled           '1'         # 总开关；'0' 把页面从 Web 服务器上撤下
 	option title             'My Portal' # 页面标题与 <title>
 	option background        '#0e1116'   # CSS 颜色
@@ -161,7 +163,7 @@ config portal
 	option bg_veil           '78'        # 0-100：背景图被压暗的程度
 	option bg_blur           '0'         # 0-100：磨砂模糊，100 等于最大值 20 px
 	option card_transparency '45'        # 0-100：100 表示卡片完全透出背景
-	option search_enabled    '0'         # '1' 在门户页上显示搜索框
+	option search_enabled    '0'         # '1' 打开空格键唤出的搜索框
 	option search_engine     'https://www.google.com/search?q=%s'  # 结果页 URL，%s 为关键字
 
 config link
@@ -171,27 +173,20 @@ config link
 	option enabled  '1'
 ```
 
-旧版本写在这里的 `port` 选项已随独立实例一并移除：页面在**主 uhttpd 监听的端口**上
-访问，配置里残留的 `port` 会被直接忽略。
+页面本身不占端口：它在**主 uhttpd 监听的端口**上访问，因此没有需要放行的防火墙规则。
 
-`enabled` 不再是「启停一个守护进程」，而是「发布或撤下页面」。关闭它会从
+`enabled` 的语义是「发布或撤下页面」，而不是「启停一个守护进程」。关闭它会从
 `/www/liteportal/` 移除入口文件与 `links.json`，使 `/liteportal/` 不再解析；上传的图标与
 背景图原封不动，重新打开即恢复。
 
 `links.json` 原样带上标题、背景与三个外观百分比；`liteportal.js` 把百分比转成
-`liteportal.css` 消费的 CSS 自定义属性，所以门户页自己不必读 uci。删掉其中任何一项都会
-在后台回落到同一个值 —— 这正是「这些选项存在之前写下的配置」外观不变的原因。
+`liteportal.css` 消费的 CSS 自定义属性，所以门户页自己不必读 uci。缺项会在后台回落到
+同一个默认值，因此只写了一部分的配置照样能渲染。
 
-门户页可以带一个搜索框：`search_enabled` 打开它，缺省（没有这一项）视为关闭 ——
-在它存在之前写下的配置照旧不显示搜索框。`search_engine` 是引擎的结果页 URL，用
-`%s` 表示关键字；预设引擎列在设置页上。在设置页选「自定义」时，页面改用
-`search_url` 里的模板，该选项只在那时才会被写入。引擎清单只存在于 LuCI 表单：
-`links.json` 只带解析后的模板，门户页本身不持有任何引擎知识。
-
-搜索框开启后默认隐藏 —— 门户页是一页链接，常驻输入框会和链接抢注意力。在页面
-任意位置按空格唤出（自动聚焦）；输入框为空时再按空格或按 `Escape` 收起。回车提交
-后结果页在新标签页打开，门户页同时清空并隐藏搜索框。输入框有内容时，空格照常
-输入空格。
+`search_enabled` 打开搜索框，缺省（没有这一项）视为关闭。`search_engine` 是引擎的结果页
+URL，用 `%s` 表示关键字；在设置页选「自定义」时，页面改用 `search_url` 里的模板，该选项
+只在那时才会被写入。引擎清单只存在于 LuCI 表单：`links.json` 只带解析后的模板，门户页
+本身不持有任何引擎知识。**键盘交互见上文「搜索框怎么用」。**
 
 `/etc/config/liteportal` 一有变化，`links.json` 会自动重新生成（LuCI 点「保存并应用」，
 或 `uci commit` 加 `/etc/init.d/liteportal reload`）。
