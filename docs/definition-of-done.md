@@ -25,7 +25,7 @@
 | 新增 ubus 方法能被调用 | `scripts/check.sh` 的 ubus↔ACL 对应关系检查 |
 | 翻译文件没写坏 | `msgfmt --check` |
 | 菜单指的视图确实存在 | `scripts/check.sh` 的 menu.d `path` ↔ `view/*.js` 存在性检查（漏了 = 设置页整页空白） |
-| 改名没有漏掉某处路径常量 | `scripts/check.sh` 的运行时标识一致性检查（以 `Makefile` 的 `LUCI_NAME` 推导期望值，逐处比对 5 个文件） |
+| 改名没有漏掉某处路径常量 | `scripts/check.sh` 的运行时标识一致性检查（以 `Makefile` 的 `PKG_NAME` 推导期望值，逐处比对 5 个文件） |
 | 没在 Windows 上把脚本改成 CRLF | 行尾检查（这会直接让设备上 `bad interpreter`） |
 | 模板占位符没漏替换 | 占位符扫描 |
 

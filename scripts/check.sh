@@ -166,13 +166,15 @@ fi
 # rather than a message. The 4.0.0 rename did hit exactly this - URL_BASE and
 # PORTAL_PATH kept '/portal' while every path around them had moved.
 #
-# The expected values are derived from LUCI_NAME in the Makefile, not compared
-# against one another, so the whole table is pinned to the package name instead
-# of agreeing on a stale value.
+# The expected values are derived from the package name in the Makefile, not
+# compared against one another, so the whole table is pinned to the package name
+# instead of agreeing on a stale value. PKG_NAME is the upstream field; LUCI_NAME
+# is luci.mk's own fallback for trees that leave it to the directory name.
 note "runtime identifiers agree"
-slug=$(sed -n 's/^LUCI_NAME:=luci-app-\(.*\)$/\1/p' Makefile | head -n 1)
+slug=$(sed -n 's/^PKG_NAME:=luci-app-\(.*\)$/\1/p' Makefile | head -n 1)
+[ -n "$slug" ] || slug=$(sed -n 's/^LUCI_NAME:=luci-app-\(.*\)$/\1/p' Makefile | head -n 1)
 if [ -z "$slug" ]; then
-	fail "could not read LUCI_NAME from the Makefile"
+	fail "could not read PKG_NAME (or LUCI_NAME) from the Makefile"
 else
 	eq() {  # label expected actual
 		if [ "$2" = "$3" ]; then
@@ -206,7 +208,24 @@ else
 	eq "init.d LITEPORTAL_WWW"    "$www"       "$(val "$init" "s|^LITEPORTAL_WWW=\(.*\)$|\1|p")"
 	eq "bookmarks.js WWW"         "$www"       "$(val "$bookmarks" "s/^const WWW = '\([^']*\)';.*/\1/p")"
 	eq "Makefile postinst mkdir"  "$www"       "$(val Makefile "s|^mkdir -p \(/www/[^ ]*\)$|\1|p")"
-	eq "Makefile prerm rm -rf"    "$www"       "$(val Makefile "s|^rm -rf \(/www/[^ ]*\)$|\1|p")"
+	# prerm removes the files the package published, one by one: the directory
+	# itself also holds the icons and backgrounds the user uploaded, so a
+	# `rm -rf` there would delete them and leave uci pointing at nothing. Same
+	# rule as init.d's unpublish(). Each name is checked against the document
+	# root derived from the package name, so a rename cannot leave a stale path.
+	prerm_block=$(sed -n "/^define Package\/luci-app-$slug\/prerm\$/,/^endef\$/p" Makefile)
+	if printf '%s\n' "$prerm_block" | grep -q '^rm -rf'; then
+		fail "Makefile prerm deletes a directory instead of the published files"
+	else
+		ok "Makefile prerm deletes no directory (uploads survive an uninstall)"
+	fi
+	for f in index.html liteportal.js liteportal.css links.json; do
+		if printf '%s' "$prerm_block" | tr -d '\\\n' | grep -q "$www/$f"; then
+			ok "Makefile prerm removes $www/$f"
+		else
+			fail "Makefile prerm does not remove $www/$f"
+		fi
+	done
 	eq "assets.js ICON_DIR"       "$www/icons" "$(val "$assets" "s/^const ICON_DIR = '\([^']*\)';.*/\1/p")"
 	eq "assets.js BG_DIR"         "$www/bg"    "$(val "$assets" "s/^const BG_DIR = '\([^']*\)';.*/\1/p")"
 	eq "init.d LITEPORTAL_SRC"    "/usr/share/$slug/www" "$(val "$init" "s|^LITEPORTAL_SRC=\(.*\)$|\1|p")"
