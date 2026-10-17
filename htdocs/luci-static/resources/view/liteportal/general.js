@@ -119,7 +119,7 @@ return view.extend({
 			 * untouched.
 			 */
 			o = s.option(form.Flag, 'search_enabled', _('Search box'),
-				_('Show a search box on the portal page.'));
+				_('Show a search box on the portal page; press Space to summon it.'));
 			o.default = '0';
 			o.rmempty = false;
 

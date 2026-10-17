@@ -459,8 +459,8 @@ msgid "Search box"
 msgstr "搜索框"
 
 #: htdocs/luci-static/resources/view/liteportal/general.js:122
-msgid "Show a search box on the portal page."
-msgstr "在门户页上显示搜索框。"
+msgid "Show a search box on the portal page; press Space to summon it."
+msgstr "在门户页上显示搜索框，按空格键唤出。"
 
 #: htdocs/luci-static/resources/view/liteportal/general.js:134
 msgid "Search engine"
