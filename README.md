@@ -5,6 +5,10 @@ router's existing `uhttpd` under `/liteportal/` and configured entirely from LuC
 
 [中文说明](README.zh-CN.md)
 
+| LuCI — *Services → Portal* | The portal page |
+|---|---|
+| <img src="docs/images/luci-settings.png" width="400" height="232" alt="General settings tab: service status, enable switch, page title, background colour and the current background image"> | <img src="docs/images/portal-page.png" width="400" height="232" alt="The portal page: the heading, the search box and two bookmark cards over a blurred background photo"> |
+
 ## What it does
 
 The router keeps serving its normal LuCI exactly as before. This app adds a
@@ -198,6 +202,12 @@ percentages as they are written in uci; `liteportal.js` turns the percentages in
 the CSS custom properties `liteportal.css` consumes, so the served page never has to
 read uci itself. A missing percentage falls back to the same default value in the
 backend, so a partially written configuration still renders.
+
+The file is re-read on every page load: the request bypasses the browser cache on
+purpose. A static file reaches the browser with `Last-Modified` but no
+`Cache-Control`, which makes a browser cache it heuristically for a fraction of
+its age — a portal untouched for a day was considered fresh for hours, so a saved
+change to any appearance slider only showed up after a hard reload.
 
 `search_enabled` switches the search box on; an absent value means off.
 `search_engine` is the engine's results URL with `%s` standing for the keyword,

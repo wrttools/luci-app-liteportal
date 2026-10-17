@@ -5,6 +5,43 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- 门户页读取 `links.json` 时跳过浏览器缓存（`fetch('links.json', { cache: 'no-store' })`）。
+  `links.json` 是静态文件，`uhttpd` 只给它 `Last-Modified` 与 `ETag`、没有 `Cache-Control`，
+  浏览器因此按「文件年龄的 10%」做启发式缓存 —— 一天没动过的门户会被当作两小时新鲜。
+  后果是改完「背景遮罩强度 / 背景磨砂模糊 / 书签透明度」保存后刷新，页面仍在读旧
+  `links.json`，三个滑块看起来全部失效，只有硬刷新才生效。文件只有几百字节，每次重取
+  没有可感知代价。`scripts/check.sh` 增加一条断言防止该选项被当成冗余优化删掉。
+- `prerm` 不再整体删除 `/www/liteportal`：只移除包自己发布的四个文件（`index.html`、
+  `liteportal.js`、`liteportal.css`、`links.json`），用户上传的 `bg/` 与 `icons/` 保留 ——
+  卸载后 `uci` 仍指向这些文件，整目录删除会让重装的页面缺图标与背景，且没有任何提示。
+  这与 `init.d` 的 `unpublish()` 原则一致：只删发布物，目录用 `rmdir` 只删空的。
+
+### Changed
+
+- `Makefile` 按上游 `immortalwrt/luci` 的规范改造，为提交官方源做准备：
+  - 补 `PKG_NAME`，删除 `LUCI_NAME`（仓库目录名已是 `luci-app-liteportal`，
+    `luci.mk` 的 `notdir $(CURDIR)` 可以直接推导）；`PKG_PO_VERSION` 保留并改写注释 ——
+    本仓库自行发布 `.apk` 资产，翻译包版本需与主包对齐；
+  - `PKG_MAINTAINER` 补邮箱，并同时设 `LUCI_MAINTAINER` —— `luci.mk` 用后者填包的
+    `Maintainer` 元数据（前者为 CONTRIBUTING 要求的字段），只写一处会漏；
+  - 删除 `Build/Prepare` 中复制 `LICENSE` 与 `chmod 0755` init 脚本的兜底：`PKG_LICENSE_FILES`
+    仅作元数据、不读文件，而 init 脚本在 git 里已是 `100755`、`luci.mk` 用 `cp -pR` 保留模式；
+  - `postinst` / `prerm` 里同样的 `chmod` 兜底一并删除，并清掉 `postinst` 中讲 4.0.0 改名与
+    apk 钩子的历史注释（其中「see README, "Upgrading from 3.x"」已是悬空引用）；
+  - `include` 改为按存在性选择 `$(TOPDIR)/feeds/luci/luci.mk` 或 `../../luci.mk`，
+    同一份文件既能在 SDK 的 `package/` 软链下构建，也能在上游 `applications/<pkg>/` 下构建。
+- `scripts/check.sh` 的运行时标识检查改为从 `PKG_NAME` 推导期望值（`LUCI_NAME` 作为回退），
+  断言强度不变；原先「`prerm` 的 `rm -rf` 等于门户目录」一条随 `prerm` 改写为更强的断言：
+  禁止出现 `rm -rf`，并逐一核对四个发布文件都在门户目录下。
+  `AGENTS.md` 与 `docs/definition-of-done.md` 的相关表述同步。
+- README（英文与 `zh-CN`）新增两张示意图，以两列表格并排放在开头：左为 LuCI 设置页，
+  右为门户页（`docs/images/portal-page.png`，替换先前的 jpg 版本）。两张图均为设备实拍
+  截图，统一缩放至 1200 px 宽、按 `width="400" height="232"` 渲染 —— 原图比例本来接近
+  （1200×690 与 1200×698），固定同一显示盒子后形变不足 1%，远小于「只统一宽度」时
+  15 px 的高度差在并排表格里造成的错位。
+
 ## [4.0.1] - 2026-10-17
 
 ### Changed

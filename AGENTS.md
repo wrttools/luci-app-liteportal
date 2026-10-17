@@ -40,7 +40,7 @@ luci-app-liteportal — 给 OpenWrt / ImmortalWrt 用的静态 HTML 导航页：
 | JSON 校验 | `for f in root/usr/share/luci/menu.d/*.json root/usr/share/rpcd/acl.d/*.json; do python3 -m json.tool "$f" >/dev/null || exit 1; done` | 菜单注册与 rpcd ACL |
 | 翻译校验 | `msgfmt --check -o /dev/null po/zh_Hans/liteportal.po` | 需 gettext；CI 用 `sudo apt-get install -y gettext` |
 | 菜单 → 视图 | `sh scripts/check.sh`（含该项） | `menu.d` 的每个视图 `path` 都要有对应的 `view/<path>.js`；漏了是整页空白 |
-| 运行时标识 | `sh scripts/check.sh`（含该项） | 以 `Makefile` 的 `LUCI_NAME` 推导期望值，比对 5 个文件里的路径常量、ubus 对象与 uci 包名 |
+| 运行时标识 | `sh scripts/check.sh`（含该项） | 以 `Makefile` 的 `PKG_NAME` 推导期望值，比对 5 个文件里的路径常量、ubus 对象与 uci 包名 |
 | 行尾检查 | `git ls-files --eol \| grep -v 'i/lf.*w/lf' ` | 期望无输出；有输出说明工作区未按 `.gitattributes` 归一化 |
 | 占位符残留 | `sh scripts/check.sh`（含该项） | 期望输出 `none`；模板占位符不得残留 |
 | 本地全量 | `sh scripts/check.sh` | 与 CI 完全一致（CI 调用的就是它）；**新增检查只加在这一处** |
@@ -146,5 +146,5 @@ luci-app-liteportal — 给 OpenWrt / ImmortalWrt 用的静态 HTML 导航页：
 
 其中「`liteportal.uc` 方法表」「用户可见字符串」「门户静态文件的落点 / 子路径」
 「`menu.d` 的视图 `path`」四行漏掉时 `scripts/check.sh` 会抓到 —— 前两行是逐项断言，
-后两行由 `runtime identifiers agree`（按 `Makefile` 的 `LUCI_NAME` 推导期望值后逐处比对）
+后两行由 `runtime identifiers agree`（按 `Makefile` 的 `PKG_NAME` 推导期望值后逐处比对）
 与 `menu entries point at views that exist` 两节覆盖；其余几行不会 —— 靠这张表和 review。

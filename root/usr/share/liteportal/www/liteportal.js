@@ -136,7 +136,19 @@ function setup_search(cfg) {
   });
 }
 
-fetch('links.json')
+/*
+ * `cache: 'no-store'` is not an optimisation to remove.
+ *
+ * links.json is rewritten every time the configuration changes, but it is still
+ * a static file: uhttpd answers it with Last-Modified and ETag only, and no
+ * Cache-Control. With no explicit freshness lifetime a browser falls back to
+ * heuristic caching - roughly 10% of the file's age - so a portal left untouched
+ * for a day is considered fresh for over two hours. Editing an appearance slider
+ * then saving leaves the page reading the cached copy, and all three sliders look
+ * like they do nothing until a hard reload. The file is a few hundred bytes, so
+ * asking for it every time costs nothing that matters.
+ */
+fetch('links.json', { cache: 'no-store' })
   .then(function (r) {
     /*
      * A 404 is not a fetch error - fetch() resolves it and r.json() then
