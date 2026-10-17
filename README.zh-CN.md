@@ -7,7 +7,7 @@
 
 | LuCI —— *服务 → Portal* | 门户页 |
 |---|---|
-| ![常规设置页：服务状态、启用开关、页面标题、背景色与当前背景图](docs/images/luci-settings.png) | ![门户页：标题落在背景图之上](docs/images/portal-page.jpg) |
+| <img src="docs/images/luci-settings.png" width="400" height="232" alt="常规设置页：服务状态、启用开关、页面标题、背景色与当前背景图"> | <img src="docs/images/portal-page.png" width="400" height="232" alt="门户页：标题、搜索框与两张书签卡片，铺在模糊的背景图之上"> |
 
 ## 它做什么
 

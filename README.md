@@ -7,7 +7,7 @@ router's existing `uhttpd` under `/liteportal/` and configured entirely from LuC
 
 | LuCI — *Services → Portal* | The portal page |
 |---|---|
-| ![General settings tab: service status, enable switch, page title, background colour and the current background image](docs/images/luci-settings.png) | ![The portal page: the heading over the background photo](docs/images/portal-page.jpg) |
+| <img src="docs/images/luci-settings.png" width="400" height="232" alt="General settings tab: service status, enable switch, page title, background colour and the current background image"> | <img src="docs/images/portal-page.png" width="400" height="232" alt="The portal page: the heading, the search box and two bookmark cards over a blurred background photo"> |
 
 ## What it does
 
