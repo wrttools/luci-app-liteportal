@@ -7,7 +7,7 @@
 
 include $(TOPDIR)/rules.mk
 
-PKG_VERSION:=4.0.0
+PKG_VERSION:=4.0.1
 PKG_RELEASE:=1
 
 # The package name must not be left to luci.mk's `notdir $(CURDIR)`: make

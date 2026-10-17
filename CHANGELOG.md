@@ -5,6 +5,21 @@
 
 ## [Unreleased]
 
+## [4.0.1] - 2026-10-17
+
+### Changed
+
+- 设置页「搜索框」开关的说明文字补充唤出方式：英文源串改为
+  `Show a search box on the portal page; press Space to summon it.`，
+  中文译为「在门户页上显示搜索框，按空格键唤出。」（门户页的空格键唤出逻辑本就存在，
+  此前文案未提及）。
+- README（英文与 `zh-CN`）重写为「功能 / 搜索框用法 / 安装 / 原理」四段式：新增
+  *Using the search box* 小节（空格唤出、空框空格收起、`Esc` 收起、回车提交、输入法
+  优先、非空框内空格即空格），删去 3.x → 4.0.0 的升级与迁移说明及全部「上一版如何」
+  类历史叙述；同时修正两处失实描述 —— 开头仍写作「独立的 uhttpd 实例/自选端口」，
+  与现状（主 uhttpd 的 `/liteportal/` 子路径）矛盾；uci 示例的 section 名仍写
+  `config portal`，实际为 `config liteportal`。
+
 ## [4.0.0] - 2026-10-17
 
 ### Changed
