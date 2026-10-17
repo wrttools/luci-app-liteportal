@@ -450,7 +450,7 @@ msgid "Search box"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/liteportal/general.js:122
-msgid "Show a search box on the portal page."
+msgid "Show a search box on the portal page; press Space to summon it."
 msgstr ""
 
 #: htdocs/luci-static/resources/view/liteportal/general.js:134
