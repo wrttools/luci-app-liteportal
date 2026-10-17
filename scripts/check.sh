@@ -334,10 +334,13 @@ fi
 #
 # docs/configuration.md is excluded on purpose: it documents the placeholder
 # syntax, so it necessarily contains the literal and would match itself.
+# .build is excluded because it holds scratch checkouts and their node_modules,
+# which are gitignored and never shipped. .workbuddy holds agent working notes,
+# which quote source snippets verbatim rather than being deliverables.
 note "template placeholders"
 ph_files=$(grep -rln '{{' \
 	--include='*.md' --include='*.js' --include='*.uc' --include='*.json' \
-	--exclude-dir=.git --exclude-dir=dist . 2>/dev/null | grep -v 'docs/configuration.md' || true)
+	--exclude-dir=.git --exclude-dir=dist --exclude-dir=.build --exclude-dir=.workbuddy . 2>/dev/null | grep -v 'docs/configuration.md' || true)
 if [ -n "$ph_files" ]; then
 	printf '%s\n' "$ph_files" >&2
 	grep -n '{{' $(printf '%s' "$ph_files" | tr '\n' ' ') >&2 || true

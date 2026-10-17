@@ -17,6 +17,12 @@
   `liteportal.js`、`liteportal.css`、`links.json`），用户上传的 `bg/` 与 `icons/` 保留 ——
   卸载后 `uci` 仍指向这些文件，整目录删除会让重装的页面缺图标与背景，且没有任何提示。
   这与 `init.d` 的 `unpublish()` 原则一致：只删发布物，目录用 `rmdir` 只删空的。
+- 清掉 `immortalwrt/luci` 仓库 `eslint.config.mjs` 报出的四个 error，行为不变：
+  `assets.js` 字符类里的 `\-` 与 `liteportal.js` 正则里的 `\/` 在字符类/正则字面量中本来就
+  无需转义（`no-useless-escape`），`rename_file()` 中 `return ui.showModal(...)` 之后的
+  `return null` 永不执行（`no-unreachable`）。三组正则替换前后在 17 个用例上逐一比对输出
+  一致。余下 18 条 `'common' is not defined` 是跨文件引入模块变量的既有形态 —— 仓库把
+  `no-undef` 设为 `warn`，上游 `luci-app-firewall` 同样有 11 条，不在本包处理范围。
 
 ### Changed
 
