@@ -1,5 +1,5 @@
 {
-	"admin/services/portal": {
+	"admin/services/liteportal": {
 		"title": "Portal",
 		"order": 60,
 		"action": {
@@ -10,36 +10,36 @@
 		}
 	},
 
-	"admin/services/portal/general": {
+	"admin/services/liteportal/general": {
 		"title": "General",
 		"order": 1,
 		"action": {
 			"type": "view",
-			"path": "portal/general"
+			"path": "liteportal/general"
 		},
 		"depends": {
 			"acl": [ "luci-app-liteportal" ]
 		}
 	},
 
-	"admin/services/portal/bookmarks": {
+	"admin/services/liteportal/bookmarks": {
 		"title": "Bookmarks",
 		"order": 2,
 		"action": {
 			"type": "view",
-			"path": "portal/bookmarks"
+			"path": "liteportal/bookmarks"
 		},
 		"depends": {
 			"acl": [ "luci-app-liteportal" ]
 		}
 	},
 
-	"admin/services/portal/assets": {
+	"admin/services/liteportal/assets": {
 		"title": "Assets",
 		"order": 3,
 		"action": {
 			"type": "view",
-			"path": "portal/assets"
+			"path": "liteportal/assets"
 		},
 		"depends": {
 			"acl": [ "luci-app-liteportal" ]

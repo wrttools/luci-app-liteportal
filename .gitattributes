@@ -2,7 +2,7 @@
 #
 # 本仓库此前只有 CRLF 工作区 + 全局 core.autocrlf=true：索引里存的是 LF，
 # 检出后却变成 CRLF。对本项目这不是 cosmetic 问题——
-#   * root/etc/init.d/portal 变成 CRLF 后，设备上会 `bad interpreter: /bin/sh^M`；
+#   * root/etc/init.d/liteportal 变成 CRLF 后，设备上会 `bad interpreter: /bin/sh^M`；
 #   * htdocs/ 下的 JS 变成 CRLF 后，LuCI 仍能跑，但 diff 全是噪声。
 # 因此这里显式声明，覆盖全局 autocrlf。
 

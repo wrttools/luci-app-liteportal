@@ -1,4 +1,4 @@
-# luci-app-portal
+# luci-app-liteportal
 
 A static HTML navigation dashboard for OpenWrt / ImmortalWrt, served on its own
 port by a dedicated `uhttpd` instance and configured entirely from LuCI.
@@ -17,19 +17,20 @@ Bookmarks, icons and the background are stored in `uci` and baked into a static
 ```
                     ┌──────────────────────────────────────┐
    :80 / :443  ────►│  uhttpd  (the router's web server)   │
-                    │    /         → LuCI                  │
-                    │    /portal/  → the portal page       │
+                    │    /             → LuCI              │
+                    │    /liteportal/  → the portal page   │
                     └──────────────────┬───────────────────┘
                                        │ served straight from disk
                                        ▼
                     ┌──────────────────────────────────────┐
-                    │  /www/portal/                        │
-                    │    index.html  portal.js  portal.css │
+                    │  /www/liteportal/                    │
+                    │    index.html   liteportal.js        │
+                    │    liteportal.css                    │
                     │    links.json   ◄── baked from uci   │
                     │    bg/  icons/  ◄── uploads land here│
                     └──────────────────────────────────────┘
                                        ▲
-   LuCI  ── /admin/services/portal ────┘   publishes / withdraws the page
+   LuCI  ── /admin/services/liteportal ────────────────────┘  publishes / withdraws the page
 ```
 
 ## Features
@@ -37,7 +38,7 @@ Bookmarks, icons and the background are stored in `uci` and baked into a static
 | | |
 |---|---|
 | On/off switch | Publish the page or take it off the web server; the uploaded icons and backgrounds survive either way |
-| No second daemon | Served by the `uhttpd` the router already runs, under `/portal/` — nothing extra to start, supervise or open in the firewall |
+| No second daemon | Served by the `uhttpd` the router already runs, under `/liteportal/` — nothing extra to start, supervise or open in the firewall |
 | Bookmarks | Add, enable/disable and delete; emoji, remote URL or an image from the asset library (a thumbnail is shown in the row when an asset image is used) |
 | Asset library | Upload (2 MiB per file), preview, rename, list and delete icons and background images, and pick the page background |
 | Appearance | Page title, CSS background colour or a background image, plus 0-100 sliders for background dimming, frosted blur and bookmark-card transparency |
@@ -57,57 +58,82 @@ Bookmarks, icons and the background are stored in `uci` and baked into a static
 
 ```sh
 # OpenWrt 25.12 and newer (apk)
-apk add --allow-untrusted ./luci-app-liteportal-3.0.2.apk
+apk add --allow-untrusted ./luci-app-liteportal-4.0.0-r1.apk
 
 # OpenWrt 24.10 and older (opkg), built from the matching SDK
-opkg install ./luci-app-liteportal_3.0.2_all.ipk
+opkg install ./luci-app-liteportal_4.0.0-r1_all.ipk
 ```
 
 Then open **Services → Portal** in LuCI, or go straight to
-`http://<router>/portal/`.
+`http://<router>/liteportal/`.
+
+### Upgrading from 3.x
+
+4.0.0 renames every runtime identifier at once — the configuration file, the
+ubus object, the service, the menu path and the page URL. **Nothing is migrated
+automatically.** Remove the old package and install this one; the old settings
+and uploaded icons are not carried over.
+
+```sh
+apk del luci-app-portal luci-i18n-portal-zh-cn    # or luci-app-liteportal 3.x
+apk add --allow-untrusted ./luci-app-liteportal-4.0.0-r1.apk
+```
+
+That is a deliberate choice rather than a limitation: the package has only ever
+run on the maintainer's test VM, so there is no installed base to carry over,
+and an automatic migration would be code written for users who do not exist.
+Removing the old package first is also what cleans up after it — its `prerm`
+deletes `/www/portal`. Upgrading in place instead leaves `/etc/config/portal`
+and `/www/portal` behind as unowned files, and `/portal/` keeps answering with
+the old page until `/www/portal` is deleted by hand.
+
+What changes: the page from `/portal/` to `/liteportal/`, the settings from
+`admin/services/portal` to `admin/services/liteportal`, the configuration from
+`/etc/config/portal` to `/etc/config/liteportal`, and the ubus object from
+`luci.portal` to `luci.liteportal`. The menu entry keeps its **Portal** label.
 
 ## Layout
 
 | Path | Purpose |
 |---|---|
-| `htdocs/luci-static/resources/portal/common.js` | Shared helpers: RPC wrappers, status panel, error reporting |
-| `htdocs/luci-static/resources/view/portal/general.js` | LuCI view — switch, title, background, appearance, maintenance |
-| `htdocs/luci-static/resources/view/portal/bookmarks.js` | LuCI view — the bookmark table |
-| `htdocs/luci-static/resources/view/portal/assets.js` | LuCI view — the icon and background image library |
+| `htdocs/luci-static/resources/liteportal/common.js` | Shared helpers: RPC wrappers, status panel, error reporting |
+| `htdocs/luci-static/resources/view/liteportal/general.js` | LuCI view — switch, title, background, appearance, maintenance |
+| `htdocs/luci-static/resources/view/liteportal/bookmarks.js` | LuCI view — the bookmark table |
+| `htdocs/luci-static/resources/view/liteportal/assets.js` | LuCI view — the icon and background image library |
 | `root/usr/share/luci/menu.d/luci-app-liteportal.json` | Menu registration |
 | `root/usr/share/rpcd/acl.d/luci-app-liteportal.json` | ubus / uci / file permissions for the views |
-| `root/usr/share/rpcd/ucode/portal.uc` | Backend: the `luci.portal` ubus object (plugin only, no CLI mode) |
-| `root/etc/init.d/portal` | Service script: publishes or withdraws the page and bakes `links.json`; runs no daemon of its own |
-| `root/usr/share/portal/www/` | Portal frontend template (`index.html`, `portal.js`, `portal.css`), copied into `/www/portal/` |
-| `root/etc/config/portal` | Default `uci` configuration |
+| `root/usr/share/rpcd/ucode/liteportal.uc` | Backend: the `luci.liteportal` ubus object (plugin only, no CLI mode) |
+| `root/etc/init.d/liteportal` | Service script: publishes or withdraws the page and bakes `links.json`; runs no daemon of its own |
+| `root/usr/share/liteportal/www/` | Portal frontend template (`index.html`, `liteportal.js`, `liteportal.css`), copied into `/www/liteportal/` |
+| `root/etc/config/liteportal` | Default `uci` configuration |
 | `scripts/check.sh` | The entire local/CI gate — read this before the rest |
 | `docs/` | Architecture, DoD, configuration and the ADR log |
 
 ## Backend API
 
-`/usr/share/rpcd/ucode/portal.uc` is loaded by `rpcd-mod-ucode` and exposed as
-the `luci.portal` ubus object:
+`/usr/share/rpcd/ucode/liteportal.uc` is loaded by `rpcd-mod-ucode` and exposed as
+the `luci.liteportal` ubus object:
 
 ```sh
-ubus call luci.portal generate
+ubus call luci.liteportal generate
 # { "ok": true, "title": "My Portal", "links": 2 }
 
-ubus call luci.portal scan
+ubus call luci.liteportal scan
 # { "lan_ip": "192.168.1.1",
 #   "ports": [ { "port": 80, "svc": "http", "web": true },
 #              { "port": 22, "svc": "ssh", "web": false },
 #              { "port": 7890, "svc": "", "web": "unknown" } ] }
 
-ubus call luci.portal status
-# { "ok": true, "enabled": true, "path": "/portal/", "published": true,
+ubus call luci.liteportal status
+# { "ok": true, "enabled": true, "path": "/liteportal/", "published": true,
 #   "server_listening": true, "reachable": true, "links": 2,
 #   "generated": true, "generated_at": 1791124783 }
 
-# asset management - the browser may only write /tmp/portal_upload.tmp,
+# asset management - the browser may only write /tmp/liteportal_upload.tmp,
 # the backend moves the file to its final name
-ubus call luci.portal upload '{ "dir": "bg", "name": "wallpaper.jpg" }'
-ubus call luci.portal rename '{ "dir": "bg", "name": "wallpaper.jpg", "new_name": "home.jpg" }'
-ubus call luci.portal remove  '{ "dir": "bg", "name": "home.jpg" }'
+ubus call luci.liteportal upload '{ "dir": "bg", "name": "wallpaper.jpg" }'
+ubus call luci.liteportal rename '{ "dir": "bg", "name": "wallpaper.jpg", "new_name": "home.jpg" }'
+ubus call luci.liteportal remove  '{ "dir": "bg", "name": "home.jpg" }'
 ```
 
 Every method above must be listed in `root/usr/share/rpcd/acl.d/luci-app-liteportal.json`,
@@ -144,7 +170,7 @@ config portal
 	option enabled           '1'         # master switch; '0' takes the page off the web server
 	option title             'My Portal' # page heading and <title>
 	option background        '#0e1116'   # CSS colour
-	option background_file   ''          # absolute path below /www/portal
+	option background_file   ''          # absolute path below /www/liteportal
 	option bg_veil           '78'        # 0-100: how strongly a background image is dimmed
 	option bg_blur           '0'         # 0-100: frosted blur, 100 = the 20 px maximum
 	option card_transparency '45'        # 0-100: 100 = bookmark cards fully see-through
@@ -154,7 +180,7 @@ config portal
 config link
 	option name     'AdGuard Home'
 	option url      'http://192.168.1.1:3000'
-	option icon_url '🛡️'              # or: option icon '/www/portal/icons/x.png'
+	option icon_url '🛡️'              # or: option icon '/www/liteportal/icons/x.png'
 	option enabled  '1'
 ```
 
@@ -164,12 +190,12 @@ listens on, and a leftover `port` in the file is simply ignored.
 
 `enabled` is no longer "start or stop a daemon" but "publish or withdraw the
 page". Switching it off removes the entry point and `links.json` from
-`/www/portal/`, so `/portal/` stops resolving; the uploaded icons and
+`/www/liteportal/`, so `/liteportal/` stops resolving; the uploaded icons and
 backgrounds are left alone and come back when it is switched on again.
 
 `links.json` carries the title, the background and the three appearance
-percentages as they are written in uci; `portal.js` turns the percentages into
-the CSS custom properties `portal.css` consumes, so the served page never has to
+percentages as they are written in uci; `liteportal.js` turns the percentages into
+the CSS custom properties `liteportal.css` consumes, so the served page never has to
 read uci itself. Deleting one of them falls back to the same value in the
 backend, which is how a configuration written before they existed keeps its look.
 
@@ -188,8 +214,8 @@ page to bring it up (it focuses itself); press space again while it is empty,
 or Escape, to put it away. Enter opens the results in a new tab and clears the
 box. A space typed inside a non-empty box is just a space.
 
-It is regenerated automatically whenever `/etc/config/portal` changes (LuCI
-*Save & Apply*, or `uci commit` plus `/etc/init.d/portal reload`).
+It is regenerated automatically whenever `/etc/config/liteportal` changes (LuCI
+*Save & Apply*, or `uci commit` plus `/etc/init.d/liteportal reload`).
 
 ## Troubleshooting
 
@@ -197,21 +223,21 @@ The *General* page has a **Service status** panel; the same numbers come from
 ubus:
 
 ```sh
-ubus call luci.portal status
+ubus call luci.liteportal status
 ```
 
 | Symptom | Cause |
 |---|---|
 | `enabled: false` | The switch in *General* is off — tick it and press **Save & Apply** |
-| `published: false` | The page is not on disk: the service has not run yet, or the switch is off. `sh /etc/init.d/portal start` publishes it |
+| `published: false` | The page is not on disk: the service has not run yet, or the switch is off. `sh /etc/init.d/liteportal start` publishes it |
 | `server_listening: false` | The main uhttpd is not listening on any port it was configured with — check `/etc/config/uhttpd` |
-| `/portal/` answers 404 although the panel says *reachable* | The main instance's `option home` is not `/www`, so it is serving a different tree |
-| Page loads, but no bookmarks | `links.json` missing or empty — press *Save & Apply* to re-bake it, or run `ubus call luci.portal generate` |
+| `/liteportal/` answers 404 although the panel says *reachable* | The main instance's `option home` is not `/www`, so it is serving a different tree |
+| Page loads, but no bookmarks | `links.json` missing or empty — press *Save & Apply* to re-bake it, or run `ubus call luci.liteportal generate` |
 | *Access denied* in the browser console | A ubus method is missing from the ACL — run `sh scripts/check.sh` |
 
 The page is served by the main uhttpd, so it inherits that instance's listen
 addresses and firewall rules — there is no separate port to unblock. The flip
-side is worth knowing before you enable it: `/portal/` is reachable wherever LuCI
+side is worth knowing before you enable it: `/liteportal/` is reachable wherever LuCI
 is, including from the WAN if the admin interface is exposed there.
 
 ## Known limitations
@@ -221,7 +247,7 @@ is, including from the WAN if the admin interface is exposed there.
 | Uploads are capped at 2 MiB | Enforced in the UI *and* in the backend, so a hand crafted request cannot bypass it. Multi-megabyte backgrounds are served fine — only the upload is bounded |
 | File names are ASCII only: letters, digits, `.`, `-`, `_` | The name becomes a device path. Rejecting is safer than silently rewriting what the user typed, and it rules out path traversal by construction. Chinese names and spaces are refused |
 | The page is reachable wherever LuCI is | It is served by the same uhttpd and therefore inherits the admin interface's exposure — there is no separate port left closed. Putting it out of reach would mean putting LuCI out of reach |
-| The location is fixed at `/portal/` | It has to live inside the main instance's `option home` (default `/www`), and the LuCI-side file ACL is a static list — a custom `home` needs the package adjusted |
+| The location is fixed at `/liteportal/` | It has to live inside the main instance's `option home` (default `/www`), and the LuCI-side file ACL is a static list — a custom `home` needs the package adjusted |
 | Unrecognised ports are not probed | Deciding whether a port speaks HTTP would need an active `GET /` with a timeout inside a synchronous ubus method, which blocks the whole rpcd — and therefore every other LuCI page. They are listed for you to decide instead |
 | Setting a background image is staged, not applied | Like every other setting, it waits for **Save & Apply**. `generate()` runs in the backend process with its own `uci` cursor and would otherwise bake the old value |
 
@@ -238,7 +264,7 @@ cd immortalwrt-sdk-*/
 ./scripts/feeds update -a
 ./scripts/feeds install -a
 
-cp -r /path/to/luci-app-portal package/luci-app-liteportal
+cp -r /path/to/luci-app-liteportal package/luci-app-liteportal
 make defconfig
 make package/luci-app-liteportal/compile V=s
 ```

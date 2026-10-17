@@ -1,6 +1,6 @@
 # 贡献指南
 
-> 项目：luci-app-portal
+> 项目：luci-app-liteportal
 
 ## 分支策略
 
@@ -26,7 +26,8 @@
 sh scripts/check.sh
 ```
 
-这就是 CI 跑的全部检查（JS 语法、JSON、shellcheck、msgfmt、ubus↔ACL、行尾、占位符），
+这就是 CI 跑的全部检查（JS 语法、JSON、shellcheck、msgfmt、ubus↔ACL、
+menu.d 视图 path ↔ 视图文件、运行时标识一致性、行尾、占位符），
 退出码非零即失败。**加检查请改 `scripts/check.sh`，不要在 CI workflow 里另加** ——
 否则本地与 CI 会漂移。
 

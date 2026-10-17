@@ -19,7 +19,7 @@ body {
  * swallows the content without it. Giving the photo a layer of its own is also
  * what makes --bg-blur possible at all - blurring body would take the text along.
  *
- * Every appearance value is a custom property set by portal.js from links.json.
+ * Every appearance value is a custom property set by liteportal.js from links.json.
  * The fallbacks are the values that used to be hard-coded (a 78% scrim, no blur,
  * cards at 55% alpha), so a portal whose uci predates the new options renders
  * exactly as it did before they existed.
@@ -112,7 +112,7 @@ h1 { font-weight: 600; letter-spacing: .5px; margin: 0 0 4px; text-shadow: 0 1px
   text-shadow: 0 1px 2px rgba(0, 0, 0, .5);
 }
 /*
- * The search box, between the heading and the grid. It is created by portal.js
+ * The search box, between the heading and the grid. It is created by liteportal.js
  * only when links.json carries a template, so a portal without the feature has
  * no such element at all. The surface borrows the card recipe (translucent dark
  * plus frosted glass) so it stays legible over any background image.

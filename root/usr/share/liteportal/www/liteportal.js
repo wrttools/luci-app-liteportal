@@ -1,6 +1,6 @@
 /*
  * Turn the appearance percentages from links.json - the very values the LuCI
- * sliders write - into the custom properties portal.css consumes. They go on
+ * sliders write - into the custom properties liteportal.css consumes. They go on
  * <html> rather than into inline styles because the scrim and the photo are
  * pseudo-elements, and an inline style on body cannot reach either of them.
  *

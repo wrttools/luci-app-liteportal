@@ -34,6 +34,8 @@ Thumbs.db
 
 # --- WorkBuddy / local scratch ---
 .workbuddy/
+# freedesktop trash created by `gio trash` inside the tree
+.Trash-*/
 
 # --- Secrets (never commit) ---
 *.key

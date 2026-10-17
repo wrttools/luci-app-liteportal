@@ -27,7 +27,7 @@
  *   3. The validator matrix: empty/absent -> required error, non-http or a
  *      template without %s -> format error, valid http(s) template -> true.
  *   4. The two-gate invariant: the regular expression in the form is
- *      character-for-character the one portal.uc uses.
+ *      character-for-character the one liteportal.uc uses.
  *
  * Run: node scripts/test-search-form.js  (wired into scripts/check.sh)
  */
@@ -38,8 +38,8 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
-const VIEW = path.join(ROOT, 'htdocs/luci-static/resources/view/portal/general.js');
-const PLUGIN = path.join(ROOT, 'root/usr/share/rpcd/ucode/portal.uc');
+const VIEW = path.join(ROOT, 'htdocs/luci-static/resources/view/liteportal/general.js');
+const PLUGIN = path.join(ROOT, 'root/usr/share/rpcd/ucode/liteportal.uc');
 
 let fail = 0;
 function check(label, cond, extra) {

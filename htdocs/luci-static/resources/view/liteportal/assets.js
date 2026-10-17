@@ -5,23 +5,23 @@
 'require request';
 'require uci';
 'require ui';
-'require portal.common as common';
+'require liteportal.common as common';
 
 /*
  * The two asset directories, inside the document root of the main uhttpd. They
  * are the same tree the portal page itself is served from, so nothing has to be
  * copied anywhere for a thumbnail to be fetchable.
  */
-const ICON_DIR = '/www/portal/icons';
-const BG_DIR = '/www/portal/bg';
+const ICON_DIR = '/www/liteportal/icons';
+const BG_DIR = '/www/liteportal/bg';
 
 /*
  * The sub-path the portal is served under. The backend writes the same value
- * into every asset URL it hands to the page (URL_BASE in portal.uc); this copy
+ * into every asset URL it hands to the page (URL_BASE in liteportal.uc); this copy
  * exists because the thumbnails on this page are fetched directly rather than
  * through links.json.
  */
-const PORTAL_PATH = '/portal';
+const PORTAL_PATH = '/liteportal';
 
 /*
  * Uploads are rejected above this size. It is enforced here so the user gets an
@@ -35,7 +35,7 @@ const MAX_UPLOAD = 2 * 1024 * 1024;
  * the ACL says, and the backend moves the file to its final name from there -
  * which is what keeps the destination out of the browser's reach.
  */
-const TMP_UPLOAD = '/tmp/portal_upload.tmp';
+const TMP_UPLOAD = '/tmp/liteportal_upload.tmp';
 
 const MIME = {
 	png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
@@ -56,21 +56,21 @@ const NAME_RE = /^[A-Za-z0-9_.\-]+$/;
  * UBUS_STATUS_INVALID_ARGUMENT - the same silent failure in a new disguise.
  */
 const callUpload = rpc.declare({
-	object: 'luci.portal',
+	object: 'luci.liteportal',
 	method: 'upload',
 	params: [ 'dir', 'name' ],
 	reject: true
 });
 
 const callRemove = rpc.declare({
-	object: 'luci.portal',
+	object: 'luci.liteportal',
 	method: 'remove',
 	params: [ 'dir', 'name' ],
 	reject: true
 });
 
 const callRename = rpc.declare({
-	object: 'luci.portal',
+	object: 'luci.liteportal',
 	method: 'rename',
 	params: [ 'dir', 'name', 'new_name' ],
 	reject: true
@@ -212,9 +212,9 @@ function refresh_assets() {
 	]).then(function(data) {
 		const icons = data[0] || [];
 		const bgs = data[1] || [];
-		const sections = uci.sections('portal', 'portal');
+		const sections = uci.sections('liteportal', 'liteportal');
 		const current_bg = sections.length
-			? (uci.get('portal', sections[0]['.name'], 'background_file') || '')
+			? (uci.get('liteportal', sections[0]['.name'], 'background_file') || '')
 			: '';
 
 		if (assets_host == null || assets_host.parentNode == null)
@@ -450,12 +450,12 @@ function remove_file(dir, entry) {
  * bake the old value.
  */
 function set_background(entry) {
-	const sections = uci.sections('portal', 'portal');
+	const sections = uci.sections('liteportal', 'liteportal');
 
 	if (!sections.length)
 		return Promise.resolve();
 
-	uci.set('portal', sections[0]['.name'], 'background_file', BG_DIR + '/' + entry.name);
+	uci.set('liteportal', sections[0]['.name'], 'background_file', BG_DIR + '/' + entry.name);
 
 	return common.run_rpc(function() {
 		return uci.save();
@@ -506,7 +506,7 @@ function asset_section(title, dir, entries, current_bg) {
 			]);
 		});
 
-	return E('div', { class: 'cbi-section portal-panel' }, [
+	return E('div', { class: 'cbi-section liteportal-panel' }, [
 		E('h3', {}, title),
 		E('div', { style: 'margin-bottom:.6em' },
 			upload_button(dir, entries.map(function(e) { return e.name; }))),
@@ -527,17 +527,17 @@ function asset_section(title, dir, entries, current_bg) {
 return view.extend({
 	load: function() {
 		return Promise.all([
-			uci.load('portal'),
+			uci.load('liteportal'),
 			fs.list(ICON_DIR).catch(function() { return []; }),
 			fs.list(BG_DIR).catch(function() { return []; })
 		]).then(function(data) {
 			this.icons = data[1] || [];
 			this.bgs = data[2] || [];
 
-			const sections = uci.sections('portal', 'portal');
+			const sections = uci.sections('liteportal', 'liteportal');
 
 			this.current_bg = sections.length
-				? (uci.get('portal', sections[0]['.name'], 'background_file') || '')
+				? (uci.get('liteportal', sections[0]['.name'], 'background_file') || '')
 				: '';
 		}.bind(this));
 	},
@@ -561,7 +561,7 @@ return view.extend({
 				asset_section(_('Backgrounds'), BG_DIR, this.bgs, this.current_bg)
 			]);
 
-			return E('div', { class: 'cbi-map portal-admin' }, [
+			return E('div', { class: 'cbi-map liteportal-admin' }, [
 				/* The style tag travels with the wrapper: this LuCI has
 				 * no view-level css() hook. */
 				E('style', { type: 'text/css' }, [ common.admin_css() ]),

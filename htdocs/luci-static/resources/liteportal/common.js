@@ -8,7 +8,7 @@
 /*
  * Shared helpers for the portal views. Loaded as
  *
- *     'require portal.common as common';
+ *     'require liteportal.common as common';
  *
  * The `as common` part only picks the variable name - the module system derives
  * it from the last path segment otherwise.
@@ -17,7 +17,7 @@
  * the factory output in a class check (`Class.isSubclass()`) and then does
  * `new` on it, so returning an object literal fails with
  *
- *     TypeError: "portal.common" factory yields invalid constructor
+ *     TypeError: "liteportal.common" factory yields invalid constructor
  *
  * The rpc handles stay at the top level on purpose: they are created once when
  * the file is evaluated, and the methods below close over them. Putting them
@@ -29,13 +29,13 @@
  * into a rejected promise instead of a result of 2. See run_rpc() below.
  */
 const callStatus = rpc.declare({
-	object: 'luci.portal',
+	object: 'luci.liteportal',
 	method: 'status',
 	reject: true
 });
 
 const callScan = rpc.declare({
-	object: 'luci.portal',
+	object: 'luci.liteportal',
 	method: 'scan',
 	params: [ 'ports' ],
 	reject: true
@@ -77,8 +77,8 @@ function render_error_block(err) {
 function scan_candidates() {
 	return callScan().then(function(result) {
 		const host = (result && result.lan_ip) || window.location.hostname;
-		const seen = new Set(uci.sections('portal', 'link').map(function(sid) {
-			return uci.get('portal', sid, 'url');
+		const seen = new Set(uci.sections('liteportal', 'link').map(function(sid) {
+			return uci.get('liteportal', sid, 'url');
 		}));
 
 		return ((result && result.ports) || []).filter(function(entry) {
@@ -114,12 +114,12 @@ function scan_candidates() {
  */
 function stage_bookmarks(entries) {
 	return entries.map(function(entry) {
-		const sid = uci.add('portal', 'link');
+		const sid = uci.add('liteportal', 'link');
 
-		uci.set('portal', sid, 'name', entry.svc || _('Service %d').format(entry.port));
-		uci.set('portal', sid, 'url', entry.url);
-		uci.set('portal', sid, 'icon_url', '🔌');
-		uci.set('portal', sid, 'enabled', '0');
+		uci.set('liteportal', sid, 'name', entry.svc || _('Service %d').format(entry.port));
+		uci.set('liteportal', sid, 'url', entry.url);
+		uci.set('liteportal', sid, 'icon_url', '🔌');
+		uci.set('liteportal', sid, 'enabled', '0');
 
 		return sid;
 	});
@@ -204,7 +204,7 @@ function confirm_scan(self, candidates, on_add) {
 	]);
 }
 
-return baseclass.extend(/** @lends LuCI.portal.common.prototype */ {
+return baseclass.extend(/** @lends LuCI.liteportal.common.prototype */ {
 
 	/*
 	 * Show a notification, replacing the previous one this app put up.
@@ -378,7 +378,7 @@ return baseclass.extend(/** @lends LuCI.portal.common.prototype */ {
 		 * origin is by construction the one that reaches it - whichever host,
 		 * port or scheme the admin browsed in on.
 		 */
-		const url = window.location.origin + (st.path || '/portal/');
+		const url = window.location.origin + (st.path || '/liteportal/');
 
 		const nodes = [
 			E('table', { class: 'table' }, [
@@ -428,7 +428,7 @@ return baseclass.extend(/** @lends LuCI.portal.common.prototype */ {
 			});
 		}
 
-		const node = E('div', { class: 'cbi-section portal-panel' }, [
+		const node = E('div', { class: 'cbi-section liteportal-panel' }, [
 			E('h3', {}, _('Service status')),
 			body,
 			E('div', { style: 'margin-top:.8em' }, [
@@ -455,7 +455,7 @@ return baseclass.extend(/** @lends LuCI.portal.common.prototype */ {
 	 *
 	 * It used to carry a second button that regenerated links.json on demand.
 	 * That is gone (ROADMAP #10): a configuration change already runs
-	 * `/etc/init.d/portal reload`, and procd_add_reload_trigger is registered
+	 * `/etc/init.d/liteportal reload`, and procd_add_reload_trigger is registered
 	 * on the service, so "Save & Apply" re-bakes the page whether or not
 	 * anything about it changed. The button was a second path to something the
 	 * normal save already does - and a misleading one, since pressing it
@@ -481,7 +481,7 @@ return baseclass.extend(/** @lends LuCI.portal.common.prototype */ {
 	 * appears until the page is re-rendered, so the caller is expected to pass it.
 	 */
 	maintenance_section: function(m, status, on_add) {
-		const s = m.section(form.TypedSection, 'portal', _('Maintenance'));
+		const s = m.section(form.TypedSection, 'liteportal', _('Maintenance'));
 		const self = this;
 
 		s.anonymous = true;
@@ -523,7 +523,7 @@ return baseclass.extend(/** @lends LuCI.portal.common.prototype */ {
 
 	/*
 	 * Shared stylesheet for the three admin views. Each view drops it into
-	 * a <style> tag inside its .portal-admin wrapper (this LuCI has no
+	 * a <style> tag inside its .liteportal-admin wrapper (this LuCI has no
 	 * view-level css() hook), and every rule is scoped under that class,
 	 * so none of it can reach other pages or other apps. Left on its own,
 	 * spacing comes from the active theme, and themes disagree - Argon in
@@ -533,17 +533,17 @@ return baseclass.extend(/** @lends LuCI.portal.common.prototype */ {
 	admin_css: function() {
 		return [
 			/* Breathing room below the last card, before the page edge. */
-			'.portal-admin { padding-bottom: 2em }',
+			'.liteportal-admin { padding-bottom: 2em }',
 
 			/* Panels built by hand (status, asset sections) are not part
 			 * of a form.Map, so themes that only pad map sections leave
 			 * their contents flush against the container edge. */
-			'.portal-admin .portal-panel { padding-left: .6em; padding-right: .6em }',
+			'.liteportal-admin .liteportal-panel { padding-left: .6em; padding-right: .6em }',
 
 			/* Buttons default to baseline alignment; the row thumbnail is
 			 * vertical-align:middle already, so an unaligned button makes
 			 * the picture sit visibly above the row's centre. */
-			'.portal-admin .cbi-section-table .btn { vertical-align: middle }'
+			'.liteportal-admin .cbi-section-table .btn { vertical-align: middle }'
 		].join('\n');
 	},
 
