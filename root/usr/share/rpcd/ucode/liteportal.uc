@@ -3,26 +3,26 @@
 // SPDX-License-Identifier: GPL-2.0-only
 // Copyright (C) 2026 cocolight
 //
-// luci-app-portal backend.
+// luci-app-liteportal backend.
 //
-// Loaded by rpcd-mod-ucode, this file provides the `luci.portal` ubus object:
+// Loaded by rpcd-mod-ucode, this file provides the `luci.liteportal` ubus object:
 //
-//     luci.portal scan      -> { "lan_ip": "192.168.1.1", "ports": [ { "port": 80, "svc": "http", "web": true } ] }
-//     luci.portal generate  -> { "ok": true, "title": "My Portal", "links": 2 }
-//     luci.portal status    -> { "ok": true, "enabled": true, "reachable": true, "path": "/portal/", ... }
-//     luci.portal upload    -> { "ok": true, "name": "bg.jpg" }
-//     luci.portal rename    -> { "ok": true, "name": "new.jpg" }
-//     luci.portal remove    -> { "ok": true, "name": "old.jpg", "references": 2 }
+//     luci.liteportal scan      -> { "lan_ip": "192.168.1.1", "ports": [ { "port": 80, "svc": "http", "web": true } ] }
+//     luci.liteportal generate  -> { "ok": true, "title": "My Portal", "links": 2 }
+//     luci.liteportal status    -> { "ok": true, "enabled": true, "reachable": true, "path": "/liteportal/", ... }
+//     luci.liteportal upload    -> { "ok": true, "name": "bg.jpg" }
+//     luci.liteportal rename    -> { "ok": true, "name": "new.jpg" }
+//     luci.liteportal remove    -> { "ok": true, "name": "old.jpg", "references": 2 }
 //
 // The portal is NOT a service of its own: the page lives in the document root
 // of the router's existing uhttpd, under a fixed sub-path, so there is no
 // second daemon to start, supervise or ask for a port.
 //
-// Call it over ubus, from /etc/init.d/portal, the package post-install script or
+// Call it over ubus, from /etc/init.d/liteportal, the package post-install script or
 // a shell:
 //
-//     ubus call luci.portal generate
-//     ubus call luci.portal status
+//     ubus call luci.liteportal generate
+//     ubus call luci.liteportal status
 //
 // It is deliberately a plugin AND NOTHING ELSE. rpcd does not set ARGV when it
 // loads a script (uc_vm_execute() passes only the program), so a file that also
@@ -35,7 +35,7 @@
 import { cursor } from 'uci';
 import { chmod, error, mkdir, open, readfile, rename, stat, unlink, writefile } from 'fs';
 
-const CONFIG = 'portal';
+const CONFIG = 'liteportal';
 
 /*
  * The document root of the main uhttpd instance, with the portal in a
@@ -46,13 +46,13 @@ const CONFIG = 'portal';
  * whatever `option home` the main instance was configured with, and the package
  * has no way to place it anywhere else.
  */
-const WWW = '/www/portal';
+const WWW = '/www/liteportal';
 
 /* The URL the page is reachable at, relative to the server root. Every asset
  * path handed to the browser is prefixed with it - without the prefix a
  * document-root relative "/bg/x.jpg" would resolve against the main root and
  * 404, because the portal is not served from the root. */
-const URL_BASE = '/portal';
+const URL_BASE = '/liteportal';
 
 const ICON_DIR = WWW + '/icons';
 const BG_DIR = WWW + '/bg';
@@ -67,7 +67,7 @@ const UHTTPD = 'uhttpd';
  * The final name is decided server side, so this is the only path a request can
  * ever write to.
  */
-const TMP_UPLOAD = '/tmp/portal_upload.tmp';
+const TMP_UPLOAD = '/tmp/liteportal_upload.tmp';
 
 /* Matches the limit the Assets page enforces, so a hand crafted request is
  * rejected the same way the UI rejects one. */
@@ -167,7 +167,7 @@ function ensure_dir(path) {
  * Map a stored asset option onto the URL the browser has to request.
  *
  * The result is an absolute path below URL_BASE, not below the server root: the
- * portal is served from /portal/, so "/bg/x.jpg" would be looked for in the
+ * portal is served from /liteportal/, so "/bg/x.jpg" would be looked for in the
  * main document root and 404. Values arrive in three shapes - a bare name as
  * written by the previous Lua release, an absolute path as written by the
  * Assets page, and a server-root relative path from a hand edited config.
@@ -421,7 +421,7 @@ function server_is_listening(uci) {
 
 /*
  * The two files that make the sub-path resolve: the entry point the browser
- * loads and the data it then fetches. Either one missing means /portal/ is not
+ * loads and the data it then fetches. Either one missing means /liteportal/ is not
  * serving a portal, whatever the configuration says.
  */
 function is_published() {
@@ -455,7 +455,7 @@ function status() {
 	uci.load(CONFIG);
 	uci.load(UHTTPD);
 
-	const general = first_section(uci, 'portal');
+	const general = first_section(uci, 'liteportal');
 	const published = is_published();
 	const server = server_is_listening(uci);
 	const stamp = stat(WWW + '/links.json');
@@ -475,7 +475,7 @@ function status() {
 
 /*
  * The appearance options are percentages in uci - that is what the sliders
- * write - but the value is not trusted here: a hand-edited /etc/config/portal
+ * write - but the value is not trusted here: a hand-edited /etc/config/liteportal
  * never went through the form, and something like "90 %" or a stray word would
  * otherwise travel all the way into the stylesheet and quietly break the page.
  * Anything that does not parse falls back to the default, the rest is clamped
@@ -530,7 +530,7 @@ function generate() {
 
 	uci.load(CONFIG);
 
-	const general = first_section(uci, 'portal');
+	const general = first_section(uci, 'liteportal');
 
 	/*
 	 * Search is baked only when it is usable - the switch on and a template
@@ -546,7 +546,7 @@ function generate() {
 		background_v: '',
 		/*
 		 * Appearance, straight from uci as percentages. The frontend turns them
-		 * into CSS custom properties; 78/0/45 are the values portal.css used to
+		 * into CSS custom properties; 78/0/45 are the values liteportal.css used to
 		 * hard-code, so a configuration written before these options existed
 		 * keeps rendering exactly as it did.
 		 */
@@ -764,7 +764,7 @@ function upload_asset(request) {
 function clear_references(uci, path) {
 	let touched = 0;
 
-	uci.foreach(CONFIG, 'portal', (section) => {
+	uci.foreach(CONFIG, 'liteportal', (section) => {
 		if (section.background_file != path)
 			return;
 
@@ -784,7 +784,7 @@ function clear_references(uci, path) {
 }
 
 /*
- * Write the cursor's changes back to /etc/config/portal.
+ * Write the cursor's changes back to /etc/config/liteportal.
  *
  * commit(), not save(). rpcd hands a plugin a cursor with no session savedir,
  * so save() has nowhere to stage into and silently leaves the file untouched -
@@ -866,7 +866,7 @@ function rename_asset(request) {
 
 	/* Work out what has to follow the file before moving it, so a failed
 	 * rename cannot leave the configuration naming a file that is gone. */
-	const general = first_section_name(uci, 'portal');
+	const general = first_section_name(uci, 'liteportal');
 	const follows = (general != null && uci.get(CONFIG, general, 'background_file') == src);
 	const links = [];
 
@@ -921,4 +921,4 @@ const methods = {
 	rename: { args: { dir: '', name: '', new_name: '' }, call: (request) => rename_asset(request?.args) }
 };
 
-return { 'luci.portal': methods };
+return { 'luci.liteportal': methods };

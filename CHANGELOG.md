@@ -5,6 +5,65 @@
 
 ## [Unreleased]
 
+## [4.0.0] - 2026-10-17
+
+### Changed
+
+- **运行时标识全量重命名 `portal` → `liteportal`（ROADMAP #32，BREAKING）**：上一版
+  只改了包名，本次把所有构成对外契约的标识一并对齐 ——
+
+  | 旧 | 新 |
+  |---|---|
+  | uci 配置 `/etc/config/portal`（section 类型 `config portal`） | `/etc/config/liteportal`（`config liteportal`） |
+  | ubus 对象 `luci.portal` | `luci.liteportal` |
+  | 服务 `/etc/init.d/portal` | `/etc/init.d/liteportal` |
+  | 菜单路径 `admin/services/portal` | `admin/services/liteportal` |
+  | 门户页 URL `/portal/` | `/liteportal/` |
+  | 静态目录 `/www/portal` | `/www/liteportal` |
+  | 前端模板 `/usr/share/portal/www` | `/usr/share/liteportal/www` |
+  | 上传暂存 `/tmp/portal_upload.tmp` | `/tmp/liteportal_upload.tmp` |
+  | 视图与资源 `view/portal/`、`resources/portal/` | `view/liteportal/`、`resources/liteportal/` |
+  | 后端插件 `portal.uc` | `liteportal.uc` |
+  | 翻译 `po/zh_Hans/portal.po` / `po/templates/portal.pot` | `liteportal.po` / `liteportal.pot` |
+
+  门户前端资源文件名一并改为 `liteportal.js` / `liteportal.css`；首页包裹层与样式
+  作用域类改为 `.liteportal-admin` / `.liteportal-panel` / `.liteportal-bm-thumb`。
+  仓库更名为 `wrttools/luci-app-liteportal`（旧 URL 由 GitHub 重定向）。
+- **升级自动迁移（`postinst`）**：进场时把用户数据搬到新名下 ——
+  `/etc/config/portal` → `/etc/config/liteportal`（仅在用户尚未持有自己的
+  liteportal 配置时，判据是 apk 未留下 `.apk-new`）、`/www/portal` →
+  `/www/liteportal`（仅在新位置为空时），并停用可能仍在运行的旧服务。
+  **升级顺序：先装新包，后卸旧包** —— 反过来旧包的 `prerm` 会先删掉
+  `/www/portal` 中已上传的素材。
+- 日志 tag 与 procd reload trigger 由 `portal` 改为 `liteportal`；init 脚本内的
+  `PORTAL_SRC` / `PORTAL_WWW` 常量更名为 `LITEPORTAL_SRC` / `LITEPORTAL_WWW`。
+
+### Fixed
+
+- **更名漏网的三处值**（首次 `scripts/check.sh` 全绿也没抓到，属「跨文件同值」类错误）：
+  - `liteportal.uc` 的 `URL_BASE` 与 `assets.js` 的 `PORTAL_PATH` 仍是 `/portal` ——
+    后端交给页面的素材 URL 前缀与前端自建的缩略图 URL 都会指到已不存在的路径；
+  - `bookmarks.js` 的 `icon_url_of()` 第三分支仍是 `return '/portal' + value`；
+  - `menu.d` 的三个视图 `path` 仍是 `view/portal/*`，而视图文件已移到
+    `view/liteportal/*` —— 按 luci-base `ui.js` 的
+    `'view.%s'.format(path.replace(/\//g, '.'))`，这一处会让三个设置页整页空白。
+
+### Added
+
+- `scripts/check.sh` 新增两节门禁，把上述两类错误从「靠 review」变成「构建期失败」：
+  - `menu entries point at views that exist` —— 校验 `menu.d` 里每个视图 `path` 都有
+    对应的 `htdocs/luci-static/resources/view/<path>.js`；
+  - `runtime identifiers agree` —— 以 `Makefile` 的 `LUCI_NAME` 推导期望值，逐处比对
+    ucode / init.d / ACL / 两个视图 / `Makefile` 里的子路径、静态目录、上传暂存路径、
+    uci 包名、ubus 对象名与菜单路径，并扫一遍 `htdocs/`、`root/` 是否还残留旧标识。
+  - 两节都做过反向验证：把上述旧值重新注入后门禁报 6 处 FAIL、退出码 1。
+- `.gitignore` 忽略 `gio trash` 在仓库内建的 `.Trash-*/`。
+
+### Note
+
+- 菜单显示名与页面标题仍为 **Portal** —— 那是面向用户的文案，不是运行时标识；
+  中文界面与上一版完全一致。
+
 ## [3.0.2] - 2026-10-16
 
 ### Changed

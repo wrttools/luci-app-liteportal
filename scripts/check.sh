@@ -29,20 +29,20 @@ if ! command -v node >/dev/null 2>&1; then
 	printf '  skip  node not installed (CI has it; see build.yml)\n'
 else
 	for f in \
-		htdocs/luci-static/resources/portal/common.js \
-		htdocs/luci-static/resources/view/portal/general.js \
-		htdocs/luci-static/resources/view/portal/bookmarks.js \
-		htdocs/luci-static/resources/view/portal/assets.js \
-		root/usr/share/portal/www/portal.js
+		htdocs/luci-static/resources/liteportal/common.js \
+		htdocs/luci-static/resources/view/liteportal/general.js \
+		htdocs/luci-static/resources/view/liteportal/bookmarks.js \
+		htdocs/luci-static/resources/view/liteportal/assets.js \
+		root/usr/share/liteportal/www/liteportal.js
 	do
-		if node --check "$f" 2>/tmp/portal-check-js.$$; then
+		if node --check "$f" 2>/tmp/liteportal-check-js.$$; then
 			ok "$f"
 		else
 			fail "$f"
-			cat /tmp/portal-check-js.$$ >&2
+			cat /tmp/liteportal-check-js.$$ >&2
 		fi
 	done
-	rm -f /tmp/portal-check-js.$$
+	rm -f /tmp/liteportal-check-js.$$
 fi
 
 # ---------------------------------------------------------------- form logic
@@ -81,20 +81,43 @@ do
 	fi
 done
 
-# ---------------------------------------------------------------- shell
+# ---------------------------------------------------------------- menu -> views
+# A menu entry of type "view" is loaded as the module `view.<path with / -> .>`
+# - luci-base's ui.js builds it as `'view.%s'.format(path.replace(/\//g, '.'))`
+# - so `"path": "liteportal/general"` means
+# htdocs/luci-static/resources/view/liteportal/general.js. Nothing ties the two
+# strings together, and a mismatch is not an error: the content area comes up
+# empty and the page just looks broken. The 4.0.0 rename did hit this - the
+# views moved to view/liteportal/ while the menu went on naming view/portal/.
+note "menu entries point at views that exist"
+menu_json=root/usr/share/luci/menu.d/luci-app-liteportal.json
+view_paths=$(grep -o '"path"[[:space:]]*:[[:space:]]*"[^"]*"' "$menu_json" |
+	sed 's/.*:[[:space:]]*"\([^"]*\)"$/\1/')
+if [ -z "$view_paths" ]; then
+	fail "no \"path\" entry found in $menu_json"
+else
+	for p in $view_paths; do
+		if [ -f "htdocs/luci-static/resources/view/$p.js" ]; then
+			ok "view/$p.js"
+		else
+			fail "$menu_json names view/$p.js, which does not exist"
+		fi
+	done
+fi
+
 note "shell"
 if command -v shellcheck >/dev/null 2>&1; then
-	if shellcheck -s sh root/etc/init.d/portal; then
-		ok "root/etc/init.d/portal"
+	if shellcheck -s sh root/etc/init.d/liteportal; then
+		ok "root/etc/init.d/liteportal"
 	else
-		fail "root/etc/init.d/portal"
+		fail "root/etc/init.d/liteportal"
 	fi
 else
 	printf '  skip  shellcheck not installed (CI installs it; see build.yml)\n'
 	# A missing shellcheck must not read as a pass, but it also must not fail
 	# a contributor who only has a bare shell. The syntax check below still
 	# runs, so the gate degrades rather than disappears.
-	sh -n root/etc/init.d/portal || fail "root/etc/init.d/portal does not parse"
+	sh -n root/etc/init.d/liteportal || fail "root/etc/init.d/liteportal does not parse"
 fi
 
 # ---------------------------------------------------------------- translations
@@ -102,36 +125,137 @@ fi
 # entries, which LuCI would render as broken buttons at runtime.
 note "translations"
 if command -v msgfmt >/dev/null 2>&1; then
-	if msgfmt --check -o /dev/null po/zh_Hans/portal.po; then
-		ok "po/zh_Hans/portal.po"
+	if msgfmt --check -o /dev/null po/zh_Hans/liteportal.po; then
+		ok "po/zh_Hans/liteportal.po"
 	else
-		fail "po/zh_Hans/portal.po"
+		fail "po/zh_Hans/liteportal.po"
 	fi
 else
 	printf '  skip  msgfmt not installed (gettext)\n'
 fi
 
 # ---------------------------------------------------------------- ubus <-> ACL
-# The security-relevant cross-reference: every method portal.uc exposes must be
+# The security-relevant cross-reference: every method liteportal.uc exposes must be
 # listed in the ACL, otherwise the view silently gets "Access denied". Checking
 # it here turns a runtime-only failure into a build failure.
 note "ubus methods are covered by the ACL"
-# portal.uc exposes its methods through the `const methods = { name: { call: …
+# liteportal.uc exposes its methods through the `const methods = { name: { call: …
 # } }` table at the end of the file, so read the names from there rather than
 # from call sites or comments.
-methods=$(sed -n '/^const methods = {/,/^};/p' root/usr/share/rpcd/ucode/portal.uc |
+methods=$(sed -n '/^const methods = {/,/^};/p' root/usr/share/rpcd/ucode/liteportal.uc |
 	sed -n 's/^[[:space:]]*\([a-z_][a-z_0-9]*\):[[:space:]]*{.*/\1/p' | sort -u)
 if [ -z "$methods" ]; then
-	fail "could not read the method table from portal.uc (expected \`const methods = { … }\`)"
+	fail "could not read the method table from liteportal.uc (expected \`const methods = { … }\`)"
 else
 	acl=$(cat root/usr/share/rpcd/acl.d/luci-app-liteportal.json)
 	for m in $methods; do
 		if printf '%s' "$acl" | grep -q "\"$m\""; then
-			ok "luci.portal.$m"
+			ok "luci.liteportal.$m"
 		else
-			fail "luci.portal.$m is exposed by portal.uc but absent from the ACL"
+			fail "luci.liteportal.$m is exposed by liteportal.uc but absent from the ACL"
 		fi
 	done
+fi
+
+# ---------------------------------------------------------------- identifiers
+# One runtime identifier lives in seven files at once (AGENTS.md §8: "change it
+# in one place and you change it in five"). Nothing keeps them in sync at
+# runtime, and a stale value in any one of them fails quietly on the device: the
+# settings page fetches a URL that does not resolve, or the backend writes into
+# a directory uhttpd does not serve, and what the user sees is a blank page
+# rather than a message. The 4.0.0 rename did hit exactly this - URL_BASE and
+# PORTAL_PATH kept '/portal' while every path around them had moved.
+#
+# The expected values are derived from LUCI_NAME in the Makefile, not compared
+# against one another, so the whole table is pinned to the package name instead
+# of agreeing on a stale value.
+note "runtime identifiers agree"
+slug=$(sed -n 's/^LUCI_NAME:=luci-app-\(.*\)$/\1/p' Makefile | head -n 1)
+if [ -z "$slug" ]; then
+	fail "could not read LUCI_NAME from the Makefile"
+else
+	eq() {  # label expected actual
+		if [ "$2" = "$3" ]; then
+			ok "$1 = $3"
+		else
+			fail "$1 is '$3', expected '$2'"
+		fi
+	}
+	val() { sed -n "$2" "$1" 2>/dev/null | head -n 1; }
+
+	uc=root/usr/share/rpcd/ucode/$slug.uc
+	init=root/etc/init.d/$slug
+	acl_json=root/usr/share/rpcd/acl.d/luci-app-$slug.json
+	assets=htdocs/luci-static/resources/view/$slug/assets.js
+	bookmarks=htdocs/luci-static/resources/view/$slug/bookmarks.js
+	common=htdocs/luci-static/resources/$slug/common.js
+
+	sub=/$slug
+	www=/www/$slug
+	tmp=/tmp/${slug}_upload.tmp
+	conf=/etc/config/$slug
+
+	# The sub-path the page is served under, in the backend and in both places
+	# the frontend has to build an asset URL of its own.
+	eq "ucode URL_BASE"            "$sub"  "$(val "$uc" "s/^const URL_BASE = '\([^']*\)';.*/\1/p")"
+	eq "assets.js PORTAL_PATH"     "$sub"  "$(val "$assets" "s/^const PORTAL_PATH = '\([^']*\)';.*/\1/p")"
+	eq "common.js status fallback" "$sub/" "$(val "$common" "s/.*st\.path || '\([^']*\)'.*/\1/p")"
+
+	# The document root directory it is published into.
+	eq "ucode WWW"                "$www"       "$(val "$uc" "s/^const WWW = '\([^']*\)';.*/\1/p")"
+	eq "init.d LITEPORTAL_WWW"    "$www"       "$(val "$init" "s|^LITEPORTAL_WWW=\(.*\)$|\1|p")"
+	eq "bookmarks.js WWW"         "$www"       "$(val "$bookmarks" "s/^const WWW = '\([^']*\)';.*/\1/p")"
+	eq "Makefile postinst mkdir"  "$www"       "$(val Makefile "s|^mkdir -p \(/www/[^ ]*\)$|\1|p")"
+	eq "Makefile prerm rm -rf"    "$www"       "$(val Makefile "s|^rm -rf \(/www/[^ ]*\)$|\1|p")"
+	eq "assets.js ICON_DIR"       "$www/icons" "$(val "$assets" "s/^const ICON_DIR = '\([^']*\)';.*/\1/p")"
+	eq "assets.js BG_DIR"         "$www/bg"    "$(val "$assets" "s/^const BG_DIR = '\([^']*\)';.*/\1/p")"
+	eq "init.d LITEPORTAL_SRC"    "/usr/share/$slug/www" "$(val "$init" "s|^LITEPORTAL_SRC=\(.*\)$|\1|p")"
+
+	# The one path a browser request is allowed to write to.
+	eq "ucode TMP_UPLOAD"    "$tmp" "$(val "$uc" "s/^const TMP_UPLOAD = '\([^']*\)';.*/\1/p")"
+	eq "assets.js TMP_UPLOAD" "$tmp" "$(val "$assets" "s/^const TMP_UPLOAD = '\([^']*\)';.*/\1/p")"
+	eq "acl staging file"    "$tmp" "$(grep -o '"/tmp/[^"]*"' "$acl_json" | tr -d '"' | head -n 1)"
+
+	# The uci package, its configuration file and the conffile declaration.
+	eq "ucode CONFIG"      "$slug" "$(val "$uc" "s/^const CONFIG = '\([^']*\)';.*/\1/p")"
+	eq "config section"    "$slug" "$(val "root/etc/config/$slug" "s/^config \(.*\)$/\1/p")"
+	eq "Makefile conffiles" "$conf" "$(val Makefile "s|^\(/etc/config/[^ ]*\)$|\1|p")"
+	eq "init.d uci lookup" "$slug.@$slug[0].enabled" \
+		"$(grep -o 'uci -q get [^)]*' "$init" | sed 's/^uci -q get //' | head -n 1)"
+
+	# The ubus object name.
+	eq "ucode ubus object"    "luci.$slug" "$(val "$uc" "s/.*return { '\(luci\.[^']*\)'.*/\1/p")"
+	eq "acl ubus object"      "luci.$slug" "$(grep -o '"luci\.[^"]*"' "$acl_json" | tr -d '"' | head -n 1)"
+	eq "common.js ubus object" "luci.$slug" "$(val "$common" "s/.*object: '\([^']*\)'.*/\1/p")"
+
+	# The menu path, and the fact that every ACL path stays inside the tree the
+	# package owns (a widened path would grant access to /www itself).
+	eq "menu path" "admin/services/$slug" \
+		"$(grep -o '"admin/services/[^"]*"' "$menu_json" | tr -d '"' | head -n 1)"
+	unscoped=
+	for p in $(grep -oE '"/(www|tmp)/[^"]*"' "$acl_json" | tr -d '"'); do
+		case "$p" in
+			"$www"|"$www"/*|"$tmp") ;;
+			*) unscoped="$unscoped $p" ;;
+		esac
+	done
+	if [ -z "$unscoped" ]; then
+		ok "acl file paths stay under $www and $tmp"
+	else
+		fail "acl grants paths outside the package's own tree:$unscoped"
+	fi
+
+	# The sweep that would have caught the 4.0.0 misses directly. The Makefile is
+	# exempt on purpose - its postinst has to name the files it migrates from -
+	# and so are docs/ and dist/, which keep the historical names deliberately.
+	stale=$(grep -rnE "luci\.portal|/etc/config/portal|/etc/init\.d/portal|/www/portal|/usr/share/portal|/tmp/portal_upload|admin/services/portal|['\"]/portal" \
+		htdocs root 2>/dev/null || true)
+	if [ -n "$stale" ]; then
+		printf '%s\n' "$stale" >&2
+		fail "an old runtime identifier is still in the shipped tree"
+	else
+		ok "no old identifier left in htdocs/ or root/"
+	fi
 fi
 
 # ---------------------------------------------------------------- rpc call sites

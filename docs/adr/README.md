@@ -19,3 +19,4 @@
 | [0004](0004-serve-portal-from-main-uhttpd.md) | 门户改由主 uhttpd 的子路径提供 | 已接受 |
 | [0005](0005-semver-release-tags.md) | 发布版本号改用纯语义化 tag（去掉 `-rN` 后缀） | 已接受 |
 | [0006](0006-search-box.md) | 门户页搜索框：引擎清单在 LuCI 表单，`links.json` 只传模板 | 已接受 |
+| [0007](0007-liteportal-runtime-identifier-rename.md) | 运行时标识从 `portal` 全量更名为 `liteportal` | 已接受 |

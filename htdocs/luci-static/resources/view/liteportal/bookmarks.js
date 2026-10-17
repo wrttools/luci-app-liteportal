@@ -5,9 +5,9 @@
 'require request';
 'require uci';
 'require ui';
-'require portal.common as common';
+'require liteportal.common as common';
 
-const ICON_DIR = '/www/portal/icons';
+const ICON_DIR = '/www/liteportal/icons';
 
 /*
  * The portal's own tree inside the main document root. Kept separate from
@@ -16,7 +16,7 @@ const ICON_DIR = '/www/portal/icons';
  * ICON_DIR would drop it and 404 - exactly what the first release of the
  * row thumbnail did. Same constant the rpcd plugin slices against (WWW).
  */
-const WWW = '/www/portal';
+const WWW = '/www/liteportal';
 
 const MIME = {
 	png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
@@ -34,10 +34,10 @@ function basename(path) {
 /*
  * The URL a stored icon option can be fetched from, for the row thumbnail.
  *
- * Mirrors asset_path() in the rpcd plugin (portal.uc), which is what the
+ * Mirrors asset_path() in the rpcd plugin (liteportal.uc), which is what the
  * portal page itself goes through - a thumbnail that resolved differently
  * from the tile would show a picture the portal does not show. The three
- * shapes a stored value can take: an absolute path under /www/portal (what
+ * shapes a stored value can take: an absolute path under /www/liteportal (what
  * the Assets page writes), a bare file name (hand edited config, resolved
  * against the icons directory), any other absolute path.
  */
@@ -46,12 +46,12 @@ function icon_url_of(value) {
 		return '';
 
 	if (value.indexOf(WWW + '/') === 0)
-		return '/portal/' + value.slice(WWW.length + 1);
+		return '/liteportal/' + value.slice(WWW.length + 1);
 
 	if (value.indexOf('/') !== 0)
-		return '/portal/icons/' + value;
+		return '/liteportal/icons/' + value;
 
-	return '/portal' + value;
+	return '/liteportal' + value;
 }
 
 /*
@@ -64,7 +64,7 @@ function icon_url_of(value) {
  */
 function make_thumb(url, name) {
 	return E('img', {
-		class: 'portal-bm-thumb',
+		class: 'liteportal-bm-thumb',
 		src: url,
 		alt: '',
 		title: name,
@@ -84,7 +84,7 @@ function update_thumb(map, sid, value) {
 	if (tr == null)
 		return;
 
-	const old = tr.querySelector('img.portal-bm-thumb');
+	const old = tr.querySelector('img.liteportal-bm-thumb');
 	const url = icon_url_of(value);
 
 	if (url === '') {
@@ -168,7 +168,7 @@ function save_row(section, section_id) {
  */
 function drop_sections(sids) {
 	sids.forEach(function(sid) {
-		uci.remove('portal', sid);
+		uci.remove('liteportal', sid);
 	});
 
 	return commit();
@@ -479,7 +479,7 @@ const BookmarkTable = form.TableSection.extend({
 		 * the dropdown is where the choice is made, the thumbnail sits
 		 * next to the button that commits it.
 		 */
-		const icon = uci.get('portal', section_id, 'icon');
+		const icon = uci.get('liteportal', section_id, 'icon');
 		const icon_url = icon_url_of(icon);
 
 		if (icon_url !== '')
@@ -564,7 +564,7 @@ return view.extend({
 	 */
 	load: function() {
 		return Promise.all([
-			uci.load('portal'),
+			uci.load('liteportal'),
 			fs.list(ICON_DIR).catch(function() { return []; })
 		]).then(function(data) {
 			this.icons = (data[1] || []).filter(function(entry) {
@@ -579,7 +579,7 @@ return view.extend({
 		return common.render_safe(function() {
 			let m, s, o;
 
-			m = new form.Map('portal', _('Bookmarks'),
+			m = new form.Map('liteportal', _('Bookmarks'),
 				_('The tiles shown on the portal page. Only enabled bookmarks are baked ' +
 				  'into links.json.'));
 
@@ -663,11 +663,11 @@ return view.extend({
 			};
 
 			/* Wrapped so the shared stylesheet (common.admin_css()) has
-			 * its .portal-admin scope, and so the page gets the same
+			 * its .liteportal-admin scope, and so the page gets the same
 			 * bottom padding across themes. The style tag travels with
 			 * the wrapper: this LuCI has no view-level css() hook. */
 			return m.render().then(function(mapNode) {
-				return E('div', { class: 'portal-admin' }, [
+				return E('div', { class: 'liteportal-admin' }, [
 					E('style', { type: 'text/css' }, [ common.admin_css() ]),
 					mapNode
 				]);

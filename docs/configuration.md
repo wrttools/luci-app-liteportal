@@ -11,7 +11,7 @@ AI 的行为规则见 [AGENTS.md](../AGENTS.md)。
 | 组件 | 要求 | 说明 |
 |------|------|------|
 | Git | ≥ 2.28 | 本仓库已用 `main` 作默认分支 |
-| POSIX Shell | `sh` | `scripts/check.sh` 与 `root/etc/init.d/portal` 都按 POSIX `sh` 写 |
+| POSIX Shell | `sh` | `scripts/check.sh` 与 `root/etc/init.d/liteportal` 都按 POSIX `sh` 写 |
 | Node.js | ≥ 18 | 仅用于 `node --check`（语法解析），CI 用系统自带版本 |
 | Python | ≥ 3.8 | 仅用于 `python3 -m json.tool` |
 | shellcheck | 任意 | 可选；缺失时门禁降级为 `sh -n` 语法检查并明确打印 `skip` |
@@ -39,14 +39,14 @@ git config user.email "you@example.com"
 仓库自带 `.gitattributes`，库内与工作区一律 LF，**它会覆盖全局的
 `core.autocrlf=true`**。
 
-这个项目对此尤其敏感：`root/etc/init.d/portal` 一旦被检出成 CRLF，装到设备上就会
+这个项目对此尤其敏感：`root/etc/init.d/liteportal` 一旦被检出成 CRLF，装到设备上就会
 `bad interpreter: /bin/sh^M`，而它在仓库里看起来完全正常。
 
 验证：
 
 ```bash
 git ls-files --eol              # 期望 i/lf 与 w/lf 一致
-git check-attr eol -- root/etc/init.d/portal   # 期望 eol: lf
+git check-attr eol -- root/etc/init.d/liteportal   # 期望 eol: lf
 ```
 
 若克隆后文件已被转成 CRLF：
@@ -70,7 +70,7 @@ git update-index --chmod=+x scripts/check.sh   # 修复
 ⚠️ `git add` / `git reset --mixed` 会按工作区推断模式把索引重置回 `100644`，
 所以 `--chmod=+x` 必须在 `git add` **之后**执行。
 
-本项目的 `root/etc/init.d/portal` **不需要**可执行位 —— 它由 `luci.mk` 在打包时
+本项目的 `root/etc/init.d/liteportal` **不需要**可执行位 —— 它由 `luci.mk` 在打包时
 设为 0755。
 
 ## 3. 行尾与目录约定
@@ -139,5 +139,5 @@ CI **不**做 SDK 构建：它耗时数分钟且易因网络 flake。一个真�
 | `Permission denied: ./scripts/check.sh` | 索引缺可执行位 | 见 §2 权限位，或直接 `sh scripts/check.sh` |
 | CI 里行尾检查失败 | 全局 `autocrlf` 与 `.gitattributes` 冲突 | `git add --renormalize .` 后提交 |
 | 改了 job 名后 PR 一直卡在 Expected | required status checks 名称未同步 | 见 §4 第3 步 |
-| ACL 检查报某方法缺失 | 改了 `portal.uc` 的 methods 表但没改 ACL | 补 ACL；见 [architecture.md](architecture.md) §3 |
+| ACL 检查报某方法缺失 | 改了 `liteportal.uc` 的 methods 表但没改 ACL | 补 ACL；见 [architecture.md](architecture.md) §3 |
 | `node --check` 报 LuCI 语法错 | 用了浏览器专属语法 | `--check` 只做解析，报错即语法问题 |

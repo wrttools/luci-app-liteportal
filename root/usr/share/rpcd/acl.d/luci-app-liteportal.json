@@ -3,28 +3,28 @@
 		"description": "Grant access to the Portal configuration",
 		"read": {
 			"file": {
-				"/www/portal": [ "list" ],
-				"/www/portal/*": [ "list" ],
-				"/www/portal/bg": [ "list" ],
-				"/www/portal/bg/*": [ "list" ],
-				"/www/portal/icons": [ "list" ],
-				"/www/portal/icons/*": [ "list" ]
+				"/www/liteportal": [ "list" ],
+				"/www/liteportal/*": [ "list" ],
+				"/www/liteportal/bg": [ "list" ],
+				"/www/liteportal/bg/*": [ "list" ],
+				"/www/liteportal/icons": [ "list" ],
+				"/www/liteportal/icons/*": [ "list" ]
 			},
 			"ubus": {
 				"file": [ "list" ],
-				"luci.portal": [ "scan", "status" ]
+				"luci.liteportal": [ "scan", "status" ]
 			},
-			"uci": [ "portal" ]
+			"uci": [ "liteportal" ]
 		},
 		"write": {
 			"cgi-io": [ "upload" ],
 			"file": {
-				"/tmp/portal_upload.tmp": [ "read", "write" ]
+				"/tmp/liteportal_upload.tmp": [ "read", "write" ]
 			},
 			"ubus": {
-				"luci.portal": [ "generate", "upload", "rename", "remove" ]
+				"luci.liteportal": [ "generate", "upload", "rename", "remove" ]
 			},
-			"uci": [ "portal" ]
+			"uci": [ "liteportal" ]
 		}
 	}
 }

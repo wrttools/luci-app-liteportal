@@ -8,8 +8,8 @@
 
 ## 0. 项目
 
-luci-app-portal — 给 OpenWrt / ImmortalWrt 用的静态 HTML 导航页：跑在用户指定端口上，
-由独立的 `uhttpd` 实例提供服务，全部配置通过 LuCI 管理并持久化在 `uci`。
+luci-app-liteportal — 给 OpenWrt / ImmortalWrt 用的静态 HTML 导航页：页面由路由器上现有的
+`uhttpd` 以子路径 `/liteportal/` 提供（不起任何独立进程），全部配置通过 LuCI 管理并持久化在 `uci`。
 
 技术栈：LuCI JavaScript 视图 + ucode（rpcd 插件）+ POSIX shell（procd init 脚本）。
 **没有编译型单元测试**，因此质量门禁是「语法级检查 + 交叉引用一致性」，见 §2。
@@ -22,9 +22,9 @@ luci-app-portal — 给 OpenWrt / ImmortalWrt 用的静态 HTML 导航页：跑�
 4. `docs/architecture.md` — 目录 / 分层 / ubus 契约 / 错误处理 / 命名规则
 5. `docs/definition-of-done.md` — 完成定义（DoD）
 6. `docs/adr/` — 已接受的架构决策（改动相关模块前先读）
-7. 与任务相关的源码：`htdocs/luci-static/resources/portal/common.js`、
-   `htdocs/luci-static/resources/view/portal/*.js`、`root/usr/share/rpcd/ucode/portal.uc`、
-   `root/etc/init.d/portal`
+7. 与任务相关的源码：`htdocs/luci-static/resources/liteportal/common.js`、
+   `htdocs/luci-static/resources/view/liteportal/*.js`、`root/usr/share/rpcd/ucode/liteportal.uc`、
+   `root/etc/init.d/liteportal`
 
 > 事实以源码为准：用 `read` 看结构、`grep` 查事实，文档只给坐标。
 
@@ -35,10 +35,12 @@ luci-app-portal — 给 OpenWrt / ImmortalWrt 用的静态 HTML 导航页：跑�
 | 目的 | 命令 | 说明 |
 |------|------|------|
 | 依赖安装 | 无 | 纯脚本项目，无包管理器依赖；构建需另配 ImmortalWrt SDK（见 [docs/configuration.md](docs/configuration.md) §6） |
-| JS 语法检查 | `for f in htdocs/luci-static/resources/portal/*.js htdocs/luci-static/resources/view/portal/*.js root/usr/share/portal/www/portal.js; do node --check "$f" || exit 1; done` | 5 个 JS 文件；LuCI 视图与门户前端 |
-| shell 检查 | `shellcheck -s sh root/etc/init.d/portal` | 唯一的 shell 脚本；`# shellcheck shell=ash` 已声明 |
+| JS 语法检查 | `for f in htdocs/luci-static/resources/liteportal/*.js htdocs/luci-static/resources/view/liteportal/*.js root/usr/share/liteportal/www/liteportal.js; do node --check "$f" || exit 1; done` | 5 个 JS 文件；LuCI 视图与门户前端 |
+| shell 检查 | `shellcheck -s sh root/etc/init.d/liteportal` | 唯一的 shell 脚本；`# shellcheck shell=ash` 已声明 |
 | JSON 校验 | `for f in root/usr/share/luci/menu.d/*.json root/usr/share/rpcd/acl.d/*.json; do python3 -m json.tool "$f" >/dev/null || exit 1; done` | 菜单注册与 rpcd ACL |
-| 翻译校验 | `msgfmt --check -o /dev/null po/zh_Hans/portal.po` | 需 gettext；CI 用 `sudo apt-get install -y gettext` |
+| 翻译校验 | `msgfmt --check -o /dev/null po/zh_Hans/liteportal.po` | 需 gettext；CI 用 `sudo apt-get install -y gettext` |
+| 菜单 → 视图 | `sh scripts/check.sh`（含该项） | `menu.d` 的每个视图 `path` 都要有对应的 `view/<path>.js`；漏了是整页空白 |
+| 运行时标识 | `sh scripts/check.sh`（含该项） | 以 `Makefile` 的 `LUCI_NAME` 推导期望值，比对 5 个文件里的路径常量、ubus 对象与 uci 包名 |
 | 行尾检查 | `git ls-files --eol \| grep -v 'i/lf.*w/lf' ` | 期望无输出；有输出说明工作区未按 `.gitattributes` 归一化 |
 | 占位符残留 | `sh scripts/check.sh`（含该项） | 期望输出 `none`；模板占位符不得残留 |
 | 本地全量 | `sh scripts/check.sh` | 与 CI 完全一致（CI 调用的就是它）；**新增检查只加在这一处** |
@@ -78,7 +80,7 @@ luci-app-portal — 给 OpenWrt / ImmortalWrt 用的静态 HTML 导航页：跑�
 
 8. 含糊需求先提问；同一问题连续 2 次修复失败，停下说明现状并求助。
 9. 只改与任务相关的文件，不做无关重构、不顺手改格式。
-10. **本项目特有**：不得把 `root/etc/init.d/portal` 之外的 shell 逻辑塞进 LuCI 视图 ——
+10. **本项目特有**：不得把 `root/etc/init.d/liteportal` 之外的 shell 逻辑塞进 LuCI 视图 ——
     浏览器侧无法读取 `/proc/net/tcp[6]`，也拿不到 `uci` 之外的系统状态。
 
 ## 5. 完成定义（DoD）
@@ -88,7 +90,7 @@ luci-app-portal — 给 OpenWrt / ImmortalWrt 用的静态 HTML 导航页：跑�
 - [ ] `ROADMAP.md` 该行「验收标准」全部满足
 - [ ] `bash scripts/check.sh` 全部通过（输出 `ALL CHECKS PASSED`）
 - [ ] 改过 ubus 方法则 ACL 白名单已同步
-- [ ] 新增的用户可见字符串已进 `po/zh_Hans/portal.po` 与 `po/templates/portal.pot`
+- [ ] 新增的用户可见字符串已进 `po/zh_Hans/liteportal.po` 与 `po/templates/liteportal.pot`
 - [ ] 相关文档（README / AGENTS / architecture / ADR）同步更新
 - [ ] `CHANGELOG.md` 的 `[Unreleased]` 已记录本次改动
 - [ ] `ROADMAP.md` 状态更新为 `done`
@@ -114,12 +116,12 @@ luci-app-portal — 给 OpenWrt / ImmortalWrt 用的静态 HTML 导航页：跑�
 
 | 契约 / 事实 | 唯一事实源在哪 |
 |---|---|
-| uci 配置项与默认值 | `root/etc/config/portal`（默认值）+ LuCI 表单 `htdocs/luci-static/resources/view/portal/*.js` |
-| ubus 方法契约 | `root/usr/share/rpcd/ucode/portal.uc` 的 `const methods = {…}` 表（每行一条）；ACL 白名单在 `root/usr/share/rpcd/acl.d/luci-app-liteportal.json` |
-| `links.json` 结构 | 生产者 `portal.uc` 的 `generate()`；消费者 `root/usr/share/portal/www/portal.js` |
-| 门户静态文件的落点与 URL 前缀 | `portal.uc` 的 `WWW` / `URL_BASE`、`root/etc/init.d/portal` 的 `PORTAL_WWW`、`acl.d` 的文件白名单、`assets.js` 的 `ICON_DIR`/`BG_DIR`/`PORTAL_PATH` —— 同一套值，改一处就是五处一起改 |
-| 端口 → 服务分类规则 | `portal.uc` 的 `classify_port()` |
-| 门户页外观百分比语义 | `portal.uc` 的 `percent()` + `root/usr/share/portal/www/portal.css` 的 CSS 自定义属性 |
+| uci 配置项与默认值 | `root/etc/config/liteportal`（默认值）+ LuCI 表单 `htdocs/luci-static/resources/view/liteportal/*.js` |
+| ubus 方法契约 | `root/usr/share/rpcd/ucode/liteportal.uc` 的 `const methods = {…}` 表（每行一条）；ACL 白名单在 `root/usr/share/rpcd/acl.d/luci-app-liteportal.json` |
+| `links.json` 结构 | 生产者 `liteportal.uc` 的 `generate()`；消费者 `root/usr/share/liteportal/www/liteportal.js` |
+| 门户静态文件的落点与 URL 前缀 | `liteportal.uc` 的 `WWW` / `URL_BASE`、`root/etc/init.d/liteportal` 的 `LITEPORTAL_WWW`、`acl.d` 的文件白名单、`assets.js` 的 `ICON_DIR`/`BG_DIR`/`PORTAL_PATH` —— 同一套值，改一处就是五处一起改（`scripts/check.sh` 的 `runtime identifiers agree` 逐处核对） |
+| 端口 → 服务分类规则 | `liteportal.uc` 的 `classify_port()` |
+| 门户页外观百分比语义 | `liteportal.uc` 的 `percent()` + `root/usr/share/liteportal/www/liteportal.css` 的 CSS 自定义属性 |
 | 版本号 | `Makefile` 的 `PKG_VERSION` / `PKG_RELEASE`；安装示例版本号在 `README.md` / `README.zh-CN.md` |
 | 质量门禁 | `scripts/check.sh`（本地与 CI 同源，`.github/workflows/build.yml` 只调用它） |
 
@@ -129,17 +131,20 @@ luci-app-portal — 给 OpenWrt / ImmortalWrt 用的静态 HTML 导航页：跑�
 
 | 改了什么 | 同回合必须过一遍 |
 |---|---|
-| `portal.uc` 的 `const methods = {…}` | `root/usr/share/rpcd/acl.d/luci-app-liteportal.json` 白名单（漏了 = 运行时 `Access denied`） |
-| 用户可见字符串 | `po/templates/portal.pot` + `po/zh_Hans/portal.po`（漏了中文界面会漏出英文） |
+| `liteportal.uc` 的 `const methods = {…}` | `root/usr/share/rpcd/acl.d/luci-app-liteportal.json` 白名单（漏了 = 运行时 `Access denied`） |
+| 用户可见字符串 | `po/templates/liteportal.pot` + `po/zh_Hans/liteportal.po`（漏了中文界面会漏出英文） |
 | `Makefile` 的 `PKG_VERSION` / `PKG_RELEASE` | `README.md` / `README.zh-CN.md` 安装示例的版本号 |
+| `menu.d` 的视图 `path` | 对应的 `htdocs/luci-static/resources/view/<path>.js` 必须存在（漏了 = 设置页整页空白） |
 | uci 配置项 / 设置键 | 本文件 §8 坐标表对应行 + `README*.md` 的 *uci reference* |
-| 门户静态文件的落点 / 子路径 | 本文件 §8 坐标表该行（`portal.uc` 的 `WWW`+`URL_BASE`、`init.d/portal` 的 `PORTAL_WWW`、ACL 文件白名单、`assets.js` 的三个常量）+ `Makefile` 的 postinst / prerm 路径 |
+| 门户静态文件的落点 / 子路径 | 本文件 §8 坐标表该行（`liteportal.uc` 的 `WWW`+`URL_BASE`、`init.d/portal` 的 `LITEPORTAL_WWW`、ACL 文件白名单、`assets.js` 的三个常量）+ `Makefile` 的 postinst / prerm 路径 |
 | 架构 / 分层 / 不变式 | `docs/architecture.md`；需要留痕的追加 `docs/adr/` |
 | 命令或门禁 | 本文件 §2 → `CONTRIBUTING.md`「本地检查」→ `.github/workflows/build.yml`，三者必须一致 |
 | 红线 / DoD | `docs/definition-of-done.md` 同步（不得放宽） |
 | 章节标题 | 全仓扫一遍按「§N」引用本文件的地方 |
 | 决策理由变更 | 新增一条 ADR，`docs/adr/` 旧记录原样保留 |
-| 发版（打 tag / 建 Release） | 对外版本用**纯语义化版本号，不带 `-r`**。<br>旧约定 `v<PKG_VERSION>-r<PKG_RELEASE>` 已发布的 `v3.0.1-r1` 等**保留不变**，本规则自下一版 `v3.0.2` 起生效。<br>① `PKG_VERSION` 变化（semver 升级）：tag 与 release title 均为 `v<PKG_VERSION>`（如 `v3.0.2`）；<br>② 仅升 `PKG_RELEASE`、不改 `PKG_VERSION` 的纯打包重发：tag 与 release title 为 `v<PKG_VERSION>+<PKG_RELEASE>`（如 `v3.0.1+2`），**不新建 CHANGELOG 段落**，只在对应 `[<PKG_VERSION>]` 段下注明「PKG_RELEASE → N（仅打包修正）」并回传 `.apk` 资产；<br>③ `CHANGELOG.md` 的 `[Unreleased]` 改名为 `[<PKG_VERSION>] - 日期`（不带 v、不带 `-r`/`+N`），顶部补空 `[Unreleased]`。<br>注意：`Makefile` 的 `PKG_VERSION`/`PKG_RELEASE` 仍照常填写 —— OpenWrt 包名恒为 `PKG_VERSION-rPKG_RELEASE`（如 `luci-app-portal-3.0.1-r2`），**不受本条 tag 规则影响**。 |
+| 发版（打 tag / 建 Release） | 对外版本用**纯语义化版本号，不带 `-r`**。<br>旧约定 `v<PKG_VERSION>-r<PKG_RELEASE>` 已发布的 `v3.0.1-r1` 等**保留不变**，本规则自下一版 `v3.0.2` 起生效。<br>① `PKG_VERSION` 变化（semver 升级）：tag 与 release title 均为 `v<PKG_VERSION>`（如 `v3.0.2`）；<br>② 仅升 `PKG_RELEASE`、不改 `PKG_VERSION` 的纯打包重发：tag 与 release title 为 `v<PKG_VERSION>+<PKG_RELEASE>`（如 `v3.0.1+2`），**不新建 CHANGELOG 段落**，只在对应 `[<PKG_VERSION>]` 段下注明「PKG_RELEASE → N（仅打包修正）」并回传 `.apk` 资产；<br>③ `CHANGELOG.md` 的 `[Unreleased]` 改名为 `[<PKG_VERSION>] - 日期`（不带 v、不带 `-r`/`+N`），顶部补空 `[Unreleased]`。<br>注意：`Makefile` 的 `PKG_VERSION`/`PKG_RELEASE` 仍照常填写 —— OpenWrt 包名恒为 `PKG_VERSION-rPKG_RELEASE`（如 `luci-app-liteportal-4.0.0-r1`），**不受本条 tag 规则影响**。 |
 
-其中「`portal.uc` 方法表」与「用户可见字符串」两行漏掉时 `scripts/check.sh` 会抓到；
-其余几行不会 —— 靠这张表和 review。
+其中「`liteportal.uc` 方法表」「用户可见字符串」「门户静态文件的落点 / 子路径」
+「`menu.d` 的视图 `path`」四行漏掉时 `scripts/check.sh` 会抓到 —— 前两行是逐项断言，
+后两行由 `runtime identifiers agree`（按 `Makefile` 的 `LUCI_NAME` 推导期望值后逐处比对）
+与 `menu entries point at views that exist` 两节覆盖；其余几行不会 —— 靠这张表和 review。

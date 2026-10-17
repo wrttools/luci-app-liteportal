@@ -1,12 +1,13 @@
-# Portal: switch, title, background and appearance of the dashboard published by
-# /etc/init.d/portal. Set enabled to '0' to take the page off the web server.
+# Liteportal: switch, title, background and appearance of the dashboard
+# published by /etc/init.d/liteportal. Set enabled to '0' to take the page off
+# the web server.
 #
-# The page is served by the main uhttpd instance under /portal/, so it has no
+# The page is served by the main uhttpd instance under /liteportal/, so it has no
 # port of its own to configure.
 #
 # The three appearance percentages are what the LuCI sliders write. Deleting one
 # falls back to the same value in the backend, so the page keeps its look.
-config portal
+config liteportal
 	option enabled '1'
 	option title 'My Portal'
 	option background '#0e1116'

@@ -3,12 +3,12 @@
 'require form';
 'require uci';
 'require ui';
-'require portal.common as common';
+'require liteportal.common as common';
 
 
 return view.extend({
 	load: function() {
-		return uci.load('portal');
+		return uci.load('liteportal');
 	},
 
 	render: function() {
@@ -17,14 +17,14 @@ return view.extend({
 
 			const status = common.status_panel();
 
-			m = new form.Map('portal', _('Portal'),
+			m = new form.Map('liteportal', _('Portal'),
 				_('A static HTML portal served by the web server the router already runs, ' +
-				  'under the /portal/ sub-path. Settings are persisted in uci and baked ' +
+				  'under the /liteportal/ sub-path. Settings are persisted in uci and baked ' +
 				  'into links.json on apply.'));
 
 			/* --------------------------------------------------------- General -- */
 
-			s = m.section(form.TypedSection, 'portal', _('General'));
+			s = m.section(form.TypedSection, 'liteportal', _('General'));
 			s.anonymous = true;
 			s.addremove = false;
 
@@ -36,7 +36,7 @@ return view.extend({
 			 */
 			o = s.option(form.Flag, 'enabled', _('Enable portal'),
 				_('Publish the portal page, or take it off the web server. When off, ' +
-				  '/portal/ stops resolving; the uploaded icons and backgrounds are kept.'));
+				  '/liteportal/ stops resolving; the uploaded icons and backgrounds are kept.'));
 			o.default = '1';
 			o.rmempty = false;
 
@@ -55,7 +55,7 @@ return view.extend({
 			o = s.option(form.DummyValue, 'background_file', _('Current background image'),
 				_('Chosen on the Assets page. It takes precedence over the colour.'));
 			o.cfgvalue = function(section_id) {
-				const value = uci.get('portal', section_id, 'background_file');
+				const value = uci.get('liteportal', section_id, 'background_file');
 
 				return (value != null && value != '') ? value : _('none');
 			};
@@ -65,7 +65,7 @@ return view.extend({
 			 * turns them into the CSS custom properties the stylesheet consumes, so
 			 * the two can never disagree about the scale.
 			 *
-			 * The defaults are what portal.css hard-coded before these options existed
+			 * The defaults are what liteportal.css hard-coded before these options existed
 			 * (a 78% scrim, no blur, cards at 45% transparency), so a configuration
 			 * that predates them keeps rendering exactly as before.
 			 *
@@ -113,7 +113,7 @@ return view.extend({
 			 * Search box on the portal page. Off by default, and absent means off
 			 * as well: a configuration written before this option existed keeps
 			 * rendering without a box, which is the same rule the appearance
-			 * sliders follow - their fallbacks are what portal.css used to
+			 * sliders follow - their fallbacks are what liteportal.css used to
 			 * hard-code. The box itself submits straight to the engine from the
 			 * browser, so there is no backend method to grant and the ACL is
 			 * untouched.
@@ -127,7 +127,7 @@ return view.extend({
 			 * The stored value is the engine's results URL with %s where the
 			 * keyword goes - not a friendly key. That keeps the engine list in
 			 * this file and nowhere else: the backend resolves and validates the
-			 * template, and a second copy of the list in portal.uc would be a
+			 * template, and a second copy of the list in liteportal.uc would be a
 			 * second chance to get it wrong. 'custom' hands the decision to the
 			 * user through search_url below.
 			 */
@@ -143,7 +143,7 @@ return view.extend({
 			/*
 			 * Only reachable with 'custom' picked above. The template is checked
 			 * here and once more in the backend - the same two-gate rule the
-			 * upload limits follow, because a hand edited /etc/config/portal
+			 * upload limits follow, because a hand edited /etc/config/liteportal
 			 * never went through this form.
 			 *
 			 * Both conditions belong in ONE depends() call, in object form.
@@ -172,12 +172,12 @@ return view.extend({
 			return m.render().then(function(mapNode) {
 				/* The panel starts out empty, fill it once the map is built. */
 				return status.refresh().then(function() {
-					/* The portal-admin class scopes the shared stylesheet
+					/* The liteportal-admin class scopes the shared stylesheet
 					 * (see common.admin_css()); it also carries the page
 					 * bottom padding themes like Argon do not provide.
 					 * The style tag travels with the wrapper: this LuCI
 					 * has no view-level css() hook. */
-					return E('div', { class: 'portal-admin' }, [
+					return E('div', { class: 'liteportal-admin' }, [
 						E('style', { type: 'text/css' }, [ common.admin_css() ]),
 						status, mapNode
 					]);

@@ -1,11 +1,12 @@
 name: build
 
-# luci-app-portal 的 CI 门禁。
+# luci-app-liteportal 的 CI 门禁。
 #
 # 本项目是纯脚本包（LuCI JS 视图 + ucode + procd shell），没有可运行的单元测试，
 # 因此门禁落在「语法级检查 + 交叉引用一致性」上：JS 能否解析、JSON 是否合法、
 # shell 是否通过 shellcheck、po 是否能编译、ubus 方法是否都在 ACL 白名单里、
-# 行尾是否全 LF、模板占位符是否有残留。
+# menu.d 的视图 path 是否有对应文件、运行时标识（子路径 / 静态目录 / uci 包名 /
+# ubus 对象）是否处处一致、行尾是否全 LF、模板占位符是否有残留。
 #
 # 真正的检查逻辑在 scripts/check.sh —— 本文件只负责准备环境并调用它，
 # 这样本地与 CI 不可能漂移。**加检查请改 scripts/check.sh，不要在这里加。**
