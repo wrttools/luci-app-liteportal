@@ -245,16 +245,23 @@ else
 		fail "acl grants paths outside the package's own tree:$unscoped"
 	fi
 
-	# The sweep that would have caught the 4.0.0 misses directly. The Makefile is
-	# exempt on purpose - its postinst has to name the files it migrates from -
-	# and so are docs/ and dist/, which keep the historical names deliberately.
-	stale=$(grep -rnE "luci\.portal|/etc/config/portal|/etc/init\.d/portal|/www/portal|/usr/share/portal|/tmp/portal_upload|admin/services/portal|['\"]/portal" \
-		htdocs root 2>/dev/null || true)
+	# The sweep that would have caught the 4.0.0 misses directly. Shipped code is
+	# held to zero occurrences; the Makefile is included but only outside
+	# comments, because the postinst explains in prose why it carries no
+	# migration code and has to name the old paths to do it. docs/ and dist/ are
+	# not scanned - they keep the historical names deliberately.
+	stale_re="luci\.portal|/etc/config/portal|/etc/init\.d/portal|/www/portal|/usr/share/portal|/tmp/portal_upload|admin/services/portal|['\"]/portal|/etc/portal"
+	stale=$(
+		{
+			grep -rnE "$stale_re" htdocs root 2>/dev/null
+			grep -nE "$stale_re" Makefile 2>/dev/null | grep -vE '^[0-9]+:[[:space:]]*#'
+		} || true
+	)
 	if [ -n "$stale" ]; then
 		printf '%s\n' "$stale" >&2
 		fail "an old runtime identifier is still in the shipped tree"
 	else
-		ok "no old identifier left in htdocs/ or root/"
+		ok "no old identifier left in htdocs/, root/ or the Makefile"
 	fi
 fi
 

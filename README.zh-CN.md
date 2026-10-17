@@ -67,18 +67,23 @@ opkg install ./luci-app-liteportal_4.0.0-r1_all.ipk
 ### 从 3.x 升级
 
 4.0.0 一次性重命名了全部运行时标识 —— 配置文件、ubus 对象、服务、菜单路径与页面
-URL。请**先装新包再卸旧包**：安装脚本会在进场时把旧配置与已上传素材搬到新名下，
-而旧包的卸载会先一步把它们删掉。
+URL。**不做任何自动迁移。** 卸载旧包、装新包即可，旧设置与已上传素材不会带过来。
 
 ```sh
-apk add --allow-untrusted ./luci-app-liteportal-4.0.0-r1.apk   # 自动迁移
-apk del luci-app-portal luci-i18n-portal-zh-cn                 # 再清理旧包
+apk del luci-app-portal luci-i18n-portal-zh-cn    # 或 3.x 的 luci-app-liteportal
+apk add --allow-untrusted ./luci-app-liteportal-4.0.0-r1.apk
 ```
 
-书签、图标、背景、外观与搜索设置原样保留。发生变化的是：页面从 `/portal/` 移到
-`/liteportal/`，设置页从 `admin/services/portal` 移到 `admin/services/liteportal`，
-配置从 `/etc/config/portal` 移到 `/etc/config/liteportal`，ubus 对象从
-`luci.portal` 改为 `luci.liteportal`。菜单项名称仍显示 **Portal**。
+这是有意为之，不是能力所限：这个包只在维护者的测试虚拟机上跑过，没有存量设备需要
+照顾，自动迁移会变成「为不存在的用户写代码」。而且先卸旧包本身就会替它收尾 —— 旧包
+的 `prerm` 会删掉 `/www/portal`。反过来原地覆盖升级会把 `/etc/config/portal` 与
+`/www/portal` 留成无主文件，`/portal/` 也会继续用旧页面应答，直到手工删掉
+`/www/portal`。
+
+发生变化的是：页面从 `/portal/` 移到 `/liteportal/`，设置页从
+`admin/services/portal` 移到 `admin/services/liteportal`，配置从
+`/etc/config/portal` 移到 `/etc/config/liteportal`，ubus 对象从 `luci.portal` 改为
+`luci.liteportal`。菜单项名称仍显示 **Portal**。
 
 ## 目录结构
 

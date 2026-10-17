@@ -29,12 +29,13 @@
   门户前端资源文件名一并改为 `liteportal.js` / `liteportal.css`；首页包裹层与样式
   作用域类改为 `.liteportal-admin` / `.liteportal-panel` / `.liteportal-bm-thumb`。
   仓库更名为 `wrttools/luci-app-liteportal`（旧 URL 由 GitHub 重定向）。
-- **升级自动迁移（`postinst`）**：进场时把用户数据搬到新名下 ——
-  `/etc/config/portal` → `/etc/config/liteportal`（仅在用户尚未持有自己的
-  liteportal 配置时，判据是 apk 未留下 `.apk-new`）、`/www/portal` →
-  `/www/liteportal`（仅在新位置为空时），并停用可能仍在运行的旧服务。
-  **升级顺序：先装新包，后卸旧包** —— 反过来旧包的 `prerm` 会先删掉
-  `/www/portal` 中已上传的素材。
+- **升级不做自动迁移**：4.0.0 改名了全部运行时路径，但本包此前只在维护者的测试
+  虚拟机上运行过，没有存量设备，`postinst` 不搬运旧配置与旧素材。升级方式为
+  先 `apk del` 旧包、再装新包（见 README 的「从 3.x 升级」）。
+  **机制上本可行**，值得记下来：apk-tools 同名升级时执行**新版本**的 `post-upgrade`
+  钩子、**不执行旧版本的** `pre-deinstall`；设备实测（3.0.2-r1 → 4.0.0-r1）
+  `/etc/config/portal` 与 `/www/portal` 连同素材原样留在盘上。因此原地覆盖升级会
+  留下无主残留，`/portal/` 也会继续应答旧页面，直到手工删掉 `/www/portal`。
 - 日志 tag 与 procd reload trigger 由 `portal` 改为 `liteportal`；init 脚本内的
   `PORTAL_SRC` / `PORTAL_WWW` 常量更名为 `LITEPORTAL_SRC` / `LITEPORTAL_WWW`。
 
@@ -55,7 +56,8 @@
     对应的 `htdocs/luci-static/resources/view/<path>.js`；
   - `runtime identifiers agree` —— 以 `Makefile` 的 `LUCI_NAME` 推导期望值，逐处比对
     ucode / init.d / ACL / 两个视图 / `Makefile` 里的子路径、静态目录、上传暂存路径、
-    uci 包名、ubus 对象名与菜单路径，并扫一遍 `htdocs/`、`root/` 是否还残留旧标识。
+    uci 包名、ubus 对象名与菜单路径，并扫一遍 `htdocs/`、`root/` 与 `Makefile`
+    （注释行除外）是否还残留旧标识。
   - 两节都做过反向验证：把上述旧值重新注入后门禁报 6 处 FAIL、退出码 1。
 - `.gitignore` 忽略 `gio trash` 在仓库内建的 `.Trash-*/`。
 

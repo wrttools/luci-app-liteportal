@@ -70,20 +70,26 @@ Then open **Services → Portal** in LuCI, or go straight to
 ### Upgrading from 3.x
 
 4.0.0 renames every runtime identifier at once — the configuration file, the
-ubus object, the service, the menu path and the page URL. Install the new
-package **before** removing the old one: the post-install script moves the old
-configuration and the uploaded assets to their new names on the way in, and the
-old package's removal would otherwise delete them first.
+ubus object, the service, the menu path and the page URL. **Nothing is migrated
+automatically.** Remove the old package and install this one; the old settings
+and uploaded icons are not carried over.
 
 ```sh
-apk add --allow-untrusted ./luci-app-liteportal-4.0.0-r1.apk   # migrates
-apk del luci-app-portal luci-i18n-portal-zh-cn                 # then clean up
+apk del luci-app-portal luci-i18n-portal-zh-cn    # or luci-app-liteportal 3.x
+apk add --allow-untrusted ./luci-app-liteportal-4.0.0-r1.apk
 ```
 
-Bookmarks, icons, backgrounds, appearance and search settings are carried over
-untouched. What moves: the page from `/portal/` to `/liteportal/`, the settings
-from `admin/services/portal` to `admin/services/liteportal`, the configuration
-from `/etc/config/portal` to `/etc/config/liteportal`, and the ubus object from
+That is a deliberate choice rather than a limitation: the package has only ever
+run on the maintainer's test VM, so there is no installed base to carry over,
+and an automatic migration would be code written for users who do not exist.
+Removing the old package first is also what cleans up after it — its `prerm`
+deletes `/www/portal`. Upgrading in place instead leaves `/etc/config/portal`
+and `/www/portal` behind as unowned files, and `/portal/` keeps answering with
+the old page until `/www/portal` is deleted by hand.
+
+What changes: the page from `/portal/` to `/liteportal/`, the settings from
+`admin/services/portal` to `admin/services/liteportal`, the configuration from
+`/etc/config/portal` to `/etc/config/liteportal`, and the ubus object from
 `luci.portal` to `luci.liteportal`. The menu entry keeps its **Portal** label.
 
 ## Layout

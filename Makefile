@@ -55,52 +55,26 @@ define Package/luci-app-liteportal/postinst
 # $${IPKG_INSTROOT} is set by opkg, $${PKG_INSTROOT} by apk-tools.
 [ -z "$${IPKG_INSTROOT}$${PKG_INSTROOT}" ] || exit 0
 
-# Adopt the trees left by earlier releases. Everything carried over here is user
-# data - bookmarks, uploaded icons and backgrounds, appearance and search
-# settings - so it is moved, and only onto a location that is still empty. A
-# merge into a tree already in use is never attempted.
+# No migration code lives here on purpose.
 #
-# 3.x -> 4.0.0 renamed the configuration file, the served tree and the ubus
-# object at once, so a device coming from 3.0.2 keeps nothing unless it is
-# carried over at this point. Two details decide the shape of the code:
+# 4.0.0 renamed every runtime path, so a device coming from 3.x would need its
+# configuration and its uploaded icons and backgrounds carried over. There is no
+# such device - the package has only ever run on the maintainer's test VM - so
+# that would be code written for users who do not exist. Upgrading is an explicit
+# two-step instead (see README, "Upgrading from 3.x").
 #
-#   * The configuration cannot use the "is the new location still empty" test
-#     the asset moves below use - apk has already unpacked this package's
-#     default configuration to /etc/config/liteportal by the time this script
-#     runs. It marks a configuration it did NOT overwrite as .apk-new, so that
-#     marker is what tells a user's own liteportal configuration apart from the
-#     default just dropped there.
-#   * The asset moves run before the mkdir below, because a pre-created
-#     /www/liteportal would defeat their emptiness test.
+# The mechanism itself would have worked, and it is worth knowing why: apk-tools
+# runs the *new* version's post-upgrade hook and does NOT run the old version's
+# pre-deinstall, so /etc/config/portal and /www/portal are still on disk when this
+# script runs. Verified on 3.0.2-r1 -> 4.0.0-r1: both survived the upgrade with
+# their contents intact. They are simply left behind, owned by no package.
+# Nothing reads them, but /portal/ goes on serving the stale page until
+# /www/portal is removed by hand - which is why the documented upgrade path
+# uninstalls the 3.x package first, letting its own prerm clean up.
 #
-# The old package is normally still installed when this runs; the release notes
-# have the user remove it afterwards, not before.
-if [ -f /etc/config/portal ] && [ ! -f /etc/config/liteportal.apk-new ]; then
-	mv -f /etc/config/portal /etc/config/liteportal
-fi
-[ -d /www/portal ] && [ ! -d /www/liteportal ] && mv /www/portal /www/liteportal
-
-# 2.0.0-r23 -> 3.0.0 kept its runtime tree under /etc/portal/www. Same rule, one
-# layout further back.
-for sub in icons bg; do
-	if [ -d "/etc/portal/www/$$sub" ] && [ ! -d "/www/liteportal/$$sub" ]; then
-		mv "/etc/portal/www/$$sub" "/www/liteportal/$$sub" 2>/dev/null
-	fi
-done
-rm -rf /etc/portal
-
 # The page is handed out by the main uhttpd out of its own document root, so
 # that is where it has to live.
 mkdir -p /www/liteportal
-
-# A 3.x package may still be installed alongside this one; its service would go
-# on republishing the page under the old name. Stopped and disabled here, but
-# its files are left to the package manager - removing them would break that
-# package's own prerm.
-if [ -x /etc/init.d/portal ]; then
-	/etc/init.d/portal stop 2>/dev/null
-	/etc/init.d/portal disable 2>/dev/null
-fi
 
 # The template files are installed by /etc/init.d/liteportal start below, which also
 # bakes the first links.json - so the list of files to publish lives in exactly
