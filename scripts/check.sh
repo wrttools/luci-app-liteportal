@@ -313,6 +313,21 @@ else
 	fail "$crlf tracked file(s) are CRLF in the working tree; run: git add --renormalize ."
 fi
 
+# ---------------------------------------------------------------- cache
+# links.json is a static file: uhttpd answers it with Last-Modified and ETag
+# only, never Cache-Control. Without an explicit freshness lifetime a browser
+# caches it heuristically (about 10% of the file's age), so a portal that has
+# not changed for a day keeps reading a stale copy for hours - and every
+# appearance slider looks broken until a hard reload. The fetch must keep
+# bypassing that cache; losing the option is invisible in a fresh browser and
+# only shows up on a device that has been running for a while.
+note "links.json is fetched around the browser cache"
+if grep -qF "fetch('links.json', { cache: 'no-store' })" root/usr/share/liteportal/www/liteportal.js; then
+	ok "no-store"
+else
+	fail "liteportal.js must fetch links.json with { cache: 'no-store' }"
+fi
+
 # ---------------------------------------------------------------- placeholders
 # This repository was generated from ai-template-repository. A leftover
 # {{PLACEHOLDER}} means a file escaped the fill-in step.

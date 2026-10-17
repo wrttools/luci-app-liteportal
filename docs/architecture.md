@@ -52,6 +52,10 @@ init.d/liteportal（发布 / 撤下）──►  /www/liteportal/（静态文件
   `search` 只在开关打开且模板合法时出现，前端据此决定是否渲染搜索框；引擎清单在
   LuCI 表单里，`links.json` 只传解析后的模板（见
   [adr/0006](adr/0006-search-box.md)）。
+- **`links.json` 每次加载都重新取，不走浏览器缓存。** 它是静态文件，`uhttpd` 只给
+  `Last-Modified` / `ETag` 而没有 `Cache-Control`，浏览器会按文件年龄自行推断新鲜期
+  （约 10%），于是保存外观改动后普通刷新仍读旧值。`liteportal.js` 用
+  `fetch(..., { cache: 'no-store' })` 绕开；`scripts/check.sh` 断言这一行不得被删。
 
 ## 3. ubus 契约
 

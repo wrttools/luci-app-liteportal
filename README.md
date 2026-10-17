@@ -203,6 +203,12 @@ the CSS custom properties `liteportal.css` consumes, so the served page never ha
 read uci itself. A missing percentage falls back to the same default value in the
 backend, so a partially written configuration still renders.
 
+The file is re-read on every page load: the request bypasses the browser cache on
+purpose. A static file reaches the browser with `Last-Modified` but no
+`Cache-Control`, which makes a browser cache it heuristically for a fraction of
+its age — a portal untouched for a day was considered fresh for hours, so a saved
+change to any appearance slider only showed up after a hard reload.
+
 `search_enabled` switches the search box on; an absent value means off.
 `search_engine` is the engine's results URL with `%s` standing for the keyword,
 and choosing *Custom* in the form sends the page to the template in `search_url`

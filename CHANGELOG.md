@@ -7,6 +7,12 @@
 
 ### Fixed
 
+- 门户页读取 `links.json` 时跳过浏览器缓存（`fetch('links.json', { cache: 'no-store' })`）。
+  `links.json` 是静态文件，`uhttpd` 只给它 `Last-Modified` 与 `ETag`、没有 `Cache-Control`，
+  浏览器因此按「文件年龄的 10%」做启发式缓存 —— 一天没动过的门户会被当作两小时新鲜。
+  后果是改完「背景遮罩强度 / 背景磨砂模糊 / 书签透明度」保存后刷新，页面仍在读旧
+  `links.json`，三个滑块看起来全部失效，只有硬刷新才生效。文件只有几百字节，每次重取
+  没有可感知代价。`scripts/check.sh` 增加一条断言防止该选项被当成冗余优化删掉。
 - `prerm` 不再整体删除 `/www/liteportal`：只移除包自己发布的四个文件（`index.html`、
   `liteportal.js`、`liteportal.css`、`links.json`），用户上传的 `bg/` 与 `icons/` 保留 ——
   卸载后 `uci` 仍指向这些文件，整目录删除会让重装的页面缺图标与背景，且没有任何提示。
