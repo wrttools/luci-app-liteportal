@@ -5,6 +5,10 @@
 
 [English](README.md)
 
+| LuCI —— *服务 → Portal* | 门户页 |
+|---|---|
+| ![常规设置页：服务状态、启用开关、页面标题、背景色与当前背景图](docs/images/luci-settings.png) | ![门户页：标题落在背景图之上](docs/images/portal-page.jpg) |
+
 ## 它做什么
 
 路由器照常在原端口提供 LuCI。本应用在**同一个** Web 服务器上额外挂一个刻意保持极简

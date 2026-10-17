@@ -5,6 +5,10 @@ router's existing `uhttpd` under `/liteportal/` and configured entirely from LuC
 
 [中文说明](README.zh-CN.md)
 
+| LuCI — *Services → Portal* | The portal page |
+|---|---|
+| ![General settings tab: service status, enable switch, page title, background colour and the current background image](docs/images/luci-settings.png) | ![The portal page: the heading over the background photo](docs/images/portal-page.jpg) |
+
 ## What it does
 
 The router keeps serving its normal LuCI exactly as before. This app adds a
